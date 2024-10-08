@@ -106,18 +106,16 @@ const App = (): JSX.Element => {
   const handleGetClientData = () => {
     fetchNui<ReturnData>("getClientData")
       .then((retData) => {
-        console.log("Got return data from client scripts:");
         console.dir(retData);
         setClientData(retData);
       })
       .catch((e) => {
-        console.error("Setting mock data due to error", e);
         setClientData({ x: 500, y: 300, z: 200 });
       });
   };
 
   return (
-    <div className={`nui-wrapper theme-${theme} z-30`}>
+    <div className={`nui-wrapper theme-${theme} z-30 relative`}>
       {/* Width and height must be window.width + borderImage.offsetX ecc */}
       { !fullscreen &&
         <div className={`tablet-image absolute z-50 pointer-events-none`}
@@ -231,7 +229,7 @@ const App = (): JSX.Element => {
 
             <div className={`main-part flex-1 theme-${theme} box-border`} id='content'>
               { activeComponent && activeComponent === 'citizen_data' && (
-                <CitizenView />
+                <CitizenView citizen={undefined} theme={""} />
               )}
               { activeComponent && activeComponent === 'vehicle_data' && (
                 <h1>Vehicle data</h1>
