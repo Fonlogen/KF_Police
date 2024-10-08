@@ -45,10 +45,6 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
     });
   };
 
-  // useEffect(() => {
-  //   console.log('Search Query NEW:', search, search?.toLowerCase());
-  // }, [search]);
-
   return (
     <>
       { data === null && (
@@ -72,7 +68,6 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
             Object.keys(data?.citizens)
             .filter((citizen: any) => {
               let ctz = data?.citizens[citizen];
-              // if (!search) console.log('No search query', search);
 
               if (search.split(' ').length > 1) {
                 let searchQueries = search.split(' ');
@@ -148,7 +143,6 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
         //   Object.keys(data?.citizens)
         //     .filter((citizen: any) => {
         //       let ctz = data?.citizens[citizen];
-        //       if (!search) console.log('No search query', search);
   
         //       if (search === '' || !search) return citizen;
         //       else if (ctz?.firstname?.toLowerCase().includes(search)) return citizen;
@@ -156,7 +150,6 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
         //       else if (ctz?.citizenId?.toString().includes(search)) return citizen;
         //       else if (ctz?.phoneNumber?.toString().includes(search)) return citizen;
   
-        //       console.log('No match found for:', search, citizen);
   
         //       return null;
         //     })
