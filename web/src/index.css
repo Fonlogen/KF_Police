@@ -16,7 +16,12 @@ body {
   height: 100vh;
   user-select: none;
   outline: none !important;
-  overflow: hidden;
+  overflow: hidden !important;
+}
+
+* {
+  box-sizing: border-box;
+  outline: none !important;
 }
 
 #root {
