@@ -408,11 +408,15 @@ export const executeDebugData = () => {
           12: {
             id: 12,
             title: 'Aggressione',
-            description: 'Aggressione ai danni di un passante. Il sospettato ha colpito la vittima con un oggetto contundente.',
+            description: 'Aggressione ai danni di un passante. #Il sospettato ha colpito la vittima con un oggetto contundente.',
             officer: 'Stefano Bianchi',
             date: '2022-11-15',
             location: 'Los Santos, Parco',
-            tags: [5]
+            tags: [5],
+            involved: [
+              'LA1071',
+              'LA1072',
+            ]
           }
         },
         wantedList: {
@@ -425,30 +429,37 @@ export const executeDebugData = () => {
         },
         tags: {
           1: {
+            id: 1,
             label: '⚠️ Importante',
             color: '#900000',
           },
           2: {
+            id: 2,
             label: '🔫 Armi',
             color: '#000090',
           },
           3: {
+            id: 3,
             label: '💰 Rapina',
             color: '#009000',
           },
           4: {
+            id: 4,
             label: '💸 Estorsione',
             color: '#009090',
           },
           5: {
+            id: 5,
             label: '👊 Rissa',
             color: '#900090',
           },
           6: {
+            id: 6,
             label: '🎨 Vandalismo',
             color: '#909000',
           },
           7: {
+            id: 7,
             label: '🍺 Alcol',
             color: '#909090',
           },
