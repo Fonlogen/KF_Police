@@ -25,6 +25,14 @@ export const VisibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useNuiEvent<boolean>("setVisible", setVisible);
 
+  useNuiEvent<any>('open', (data) => {
+    setVisible(data.visible);
+
+    if (data.visible) {
+      fetchNui('getClientData', true);
+    }
+  });
+
   // Handle pressing escape/backspace
   useEffect(() => {
     // Only attach listener when we are visible
@@ -32,7 +40,7 @@ export const VisibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const keyHandler = (e: KeyboardEvent) => {
       if (["Escape"].includes(e.code)) {
-        if (!isEnvBrowser()) fetchNui("hideFrame");
+        if (!isEnvBrowser()) fetchNui("close");
         else setVisible(!visible);
       }
     };

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useEffect } from 'react'
 import { useState } from 'react'
 import { useNuiEvent } from '../../hooks/useNuiEvent';
 
@@ -12,6 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { PuffLoader } from 'react-spinners';
 import { MDTContext } from '../App';
+import { fetchNui } from '../../utils/fetchNui';
 
 // import { translate } from '../utils/translator';
 
@@ -82,6 +83,10 @@ function PagesContainer({ theme, setActiveComponent }: PagesContainerProps) {
   const { setHeader } = context;
 
   const [enabledPages, setEnabledPages] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchNui('getEnabledPages');
+  }, []);
 
   useNuiEvent<any>('setEnabledPages', (data) => {
     if (Array.isArray(data)) {

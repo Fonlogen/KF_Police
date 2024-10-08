@@ -47,7 +47,7 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
 
   return (
     <>
-      { data === null && (
+      { !data || data === null && (
         <div className='flex h-full w-full items-center justify-center'>
           <PuffLoader color={'#ffffff'} loading={!data} size={50} />
         </div>
@@ -99,7 +99,7 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
               // Get the citizen data of the citizen key
               citizen = data?.citizens[citizen],
               {
-                image: citizen?.image || guestImage,
+                image: citizen?.image || 'https://via.placeholder.com/150',
                 name: citizen?.firstname,
                 surname: citizen?.lastname,
                 town: citizen?.town || 'Los Santos',

@@ -30,6 +30,8 @@ function ViewReport({ report }: ViewReportProps) {
 
   const { data, search, setSelectedData, setActiveComponent, theme } = context;
 
+  console.log('REPORTS: ', JSON.stringify(data?.reports));
+
   const loadCitizenComponent = async (citizen: any, theme: string) => {
     const { default: CitizenView } = await import('./CitizenView');
     setActiveComponent({
@@ -43,14 +45,14 @@ function ViewReport({ report }: ViewReportProps) {
     
   return (
     <>
-      {data === null && (
+      {data === null || !report && (
         <div className='flex h-full w-full items-center justify-center'>
           <PuffLoader color={'#ffffff'} loading={!data} size={50} />
         </div>
       )}
       
       {data !== null && report !== null && (
-        report = typeof report === 'number' ? data.reports[report] : report,
+        report = typeof report === 'number' ? data?.reports[report] : report,
         <div className="flex flex-col w-full h-full px-2 py-1 gap-3">
           <div className="flex flex-row justify-between items-center gap-3 text-white border-b border-gray-700 pb-4">
             <h2 className="text-2xl font-bold flex-1 text-start">Report #{report?.id} | {report?.title}</h2>
@@ -64,7 +66,7 @@ function ViewReport({ report }: ViewReportProps) {
                         backgroundColor: tagData?.color
                       }
                     }>
-                      {tagData?.icon && <FontAwesomeIcon icon={tagData.icon} />}
+                      {tagData?.icon && <FontAwesomeIcon icon={tagData?.icon} />}
                       {tagData?.label}
                     </span>
                   );
@@ -89,7 +91,7 @@ function ViewReport({ report }: ViewReportProps) {
                   <div key={index} className='text-[12px] text-white flex flex-row gap-2 items-center gap-1 bg-blue-600 px-1 rounded-md cursor-pointer hover:bg-blue-700'
                     onClick={() => loadCitizenComponent(involved, theme)}
                   >
-                    <span><b>{involved.firstname} {involved.lastname}</b> | {cid}</span>
+                    <span><b>{involved?.firstname} {involved?.lastname}</b> | {cid}</span>
                     {/* <span className='hover:text-red-500 cursor-pointer hover:bg-blue-800 px-2 rounded-md text-md'
                       onClick={() => {
                         // Remove the citizen from the involved list

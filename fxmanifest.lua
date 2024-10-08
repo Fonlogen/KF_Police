@@ -1,6 +1,8 @@
 fx_version 'cerulean'
 game 'gta5'
 
+lua54 'yes'
+
 author 'Fonlogen, Kekko'
 description 'Advanced Police MDT System'
 version '1.0.0'
@@ -20,9 +22,9 @@ shared_scripts {
   'shared/**/*',
 }
 
-ui_page 'web/dist/index.html'
+ui_page 'web/build/index.html'
 
 files {
-  'web/dist/index.html',
-  'web/dist/**/*'
+  'web/build/index.html',
+  'web/build/assets/**/*'
 }

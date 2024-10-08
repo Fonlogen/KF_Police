@@ -70,28 +70,42 @@ const App = (): JSX.Element => {
 
   // NUI Event Handlers
   useNuiEvent<any>('setTheme', (data) => {
+    console.log('Setting theme', data);
     if (data) {
       setTheme(data);
+    } else {
+      setTheme('police');
     }
   });
   useNuiEvent<any>('setConfig', (data) => {
+    console.log('Setting config', data);
     if (data) {
+      
       if (config) {
         setConfig({ ...config, ...data });
+      } else {
+        setConfig(data);
       }
     }
   });
   useNuiEvent<any>('setData', (newData) => {
+    console.log('Curr data', JSON.stringify(data));
+    console.log('Setting data', JSON.stringify(newData));
     if (newData) {
       if (data) {
         setData({ ...data, ...newData });
+      } else {
+        setData(newData);
       }
     }
   });
   useNuiEvent<any>('setPlayerData', (data) => {
+    console.log('Setting player data', data);
     if (data) {
       if (playerData) {
         setPlayerData({ ...playerData, ...data });
+      } else {
+        setPlayerData(data);
       }
     }
   });
@@ -120,10 +134,10 @@ const App = (): JSX.Element => {
       { !fullscreen &&
         <div className={`tablet-image absolute z-50 pointer-events-none`}
           style={{
-            height:     config?.window?.height  ? `${config.window.height + config.borderImage.heightOffset}px` : '720px',
-            width:      config?.window?.width   ? `${config.window.width  + config.borderImage.widthOffset}px`  : '1080px',
-            maxHeight:  config?.window?.height  ? `${config.window.height + config.borderImage.heightOffset}px` : '720px',
-            maxWidth:   config?.window?.width   ? `${config.window.width  + config.borderImage.widthOffset}px`  : '1080px',
+            height:     config?.window?.height  ? `${config.window.height + config.borderImage.heightOffset}px` : `${150 + 768}px`,
+            width:      config?.window?.width   ? `${config.window.width  + config.borderImage.widthOffset}px`  : `${100 + 1080}px`,
+            maxHeight:  config?.window?.height  ? `${config.window.height + config.borderImage.heightOffset}px` : `${150 + 768}px`,
+            maxWidth:   config?.window?.width   ? `${config.window.width  + config.borderImage.widthOffset}px`  : `${100 + 1080}px`,
           }}
         >
           <img src={tabletImg} alt="Tablet" className="object-fill h-full w-full" />
@@ -135,116 +149,124 @@ const App = (): JSX.Element => {
         <img src={backgroundImg} alt="Background" className="background-image absolute z-[-1] pointer-events-none w-full h-full" />
       }
 
-      <div 
-        className={`mdt-container flex flex-col gap-3 ${fullscreen ? 'window_fullscreen' : ''}`}
-        style={
-          !fullscreen
-          ? {
-              height: config?.window?.height ? `${config.window.height}px` : '1366px',
-              width: config?.window?.width ? `${config.window.width}px` : '768px',
-              maxHeight: config?.window?.height ? `${config.window.height}px` : '1366px',
-              maxWidth: config?.window?.width ? `${config.window.width}px` : '768px',
-            }
-          : {}
-        }
-      >
-        <MDTContext.Provider value={
-          { 
-            data: data, 
-            setData: setData,
-            config: config, 
-            setConfig: setConfig,
-            playerData: playerData, 
-            setPlayerData: setPlayerData,
-            theme: theme, 
-            setTheme: setTheme,
-            activeComponent: activeComponent,
-            setActiveComponent: setActiveComponent,
-            search: searchQuery, 
-            setSearch: setSearchQuery, 
-            selectedData: selectedData,
-            setSelectedData: setSelectedData, 
-            dialogData: dialogData,
-            setDialogData: setDialogData,
-            header: {
-              icon: faHome,
-              text: 'Benvenuto',
-            },
-            setHeader: setHeader,
-          }
-        }>
-          <DebugMenu />
-
-          {/* <Dialog 
-            title={dialogData?.title} 
-            body={dialogData?.message} 
-            show={dialogData?.show}
-            options={dialogData?.options}
-            background={dialogData?.background}
-            onClose={dialogData?.onClose}
-            className={dialogData?.className}
-            style={dialogData?.style}
-          /> */}
-          
-          {/* <InputDialog 
-            title='Testtttt'
-            body='Test'
-            show={true}
-            options={[
-              {
-                type: 'input',
-                inputType: 'text',
-                placeholder: 'Inserisci il nome del cittadino',
-              },
-              {
-                type: 'button',
-                label: 'Cerca',
-                className: 'btn-primary',
-                onClick: () => {
-                  console.log('Cerca');
-                },
+      { !playerData || !config || !data ? (
+          <div className='flex h-full w-full items-center justify-center'>
+            <p className='text-white'>Loading...</p>
+          </div>
+        ) : null
+      }
+      { data && config && playerData && (
+        <div 
+          className={`mdt-container flex flex-col gap-3 ${fullscreen ? 'window_fullscreen' : ''}`}
+          style={
+            !fullscreen
+            ? {
+                height: config?.window?.height ? `${config.window.height}px` : '768px',
+                width: config?.window?.width ? `${config.window.width}px` : '1080px',
+                maxHeight: config?.window?.height ? `${config.window.height}px` : '768px',
+                maxWidth: config?.window?.width ? `${config.window.width}px` : '1080px',
               }
-            ]}
-          /> */}
+            : {}
+          }
+        >
+          <MDTContext.Provider value={
+            { 
+              data: data, 
+              setData: setData,
+              config: config, 
+              setConfig: setConfig,
+              playerData: playerData, 
+              setPlayerData: setPlayerData,
+              theme: theme, 
+              setTheme: setTheme,
+              activeComponent: activeComponent,
+              setActiveComponent: setActiveComponent,
+              search: searchQuery, 
+              setSearch: setSearchQuery, 
+              selectedData: selectedData,
+              setSelectedData: setSelectedData, 
+              dialogData: dialogData,
+              setDialogData: setDialogData,
+              header: {
+                icon: faHome,
+                text: 'Benvenuto',
+              },
+              setHeader: setHeader,
+            }
+          }>
+            <DebugMenu />
 
-          <div 
-            className="mdt-header flex flex-row gap-3 justify-between h-[100px]"
-          >
-            <DepartmentHeader deptCity='Los Santos' deptText="Police Department" deptImage="https://static.wikia.nocookie.net/diamond-city/images/c/c0/LSPD.png" className={`theme-${theme}`} />
-            <div className={`header-right theme-${theme} flex flex-col gap-3 items-center h-full flex-1`}>
-              <div className="top-part flex w-full justify-end gap-2 h-[50px]">
-                <Account playerData={playerData} theme={theme} />
-                <button className="close-button text-red-500 hover:text-red-600 px-3" onClick={() => fetchNui("hideFrame")}>
-                  <FontAwesomeIcon icon={faTimes} className="text-4xl font-bold" />
-                </button>
-              </div>
-              <PageHeader activeComponent={activeComponent} setSearchQuery={setSearchQuery} header={header} />
-            </div>
-          </div>
-          <div className="mdt-content flex flex-row flex-1 gap-3 overflow-hidden">
-            <div className="side-part w-[350px] gap-3 flex flex-col overflow-hidden">
-              <PagesContainer theme={`${theme}`} setActiveComponent={setActiveComponent} />
-              <BottomButtons />
-            </div>
+            {/* <Dialog 
+              title={dialogData?.title} 
+              body={dialogData?.message} 
+              show={dialogData?.show}
+              options={dialogData?.options}
+              background={dialogData?.background}
+              onClose={dialogData?.onClose}
+              className={dialogData?.className}
+              style={dialogData?.style}
+            /> */}
+            
+            {/* <InputDialog 
+              title='Testtttt'
+              body='Test'
+              show={true}
+              options={[
+                {
+                  type: 'input',
+                  inputType: 'text',
+                  placeholder: 'Inserisci il nome del cittadino',
+                },
+                {
+                  type: 'button',
+                  label: 'Cerca',
+                  className: 'btn-primary',
+                  onClick: () => {
+                    console.log('Cerca');
+                  },
+                }
+              ]}
+            /> */}
 
-            <div className={`main-part flex-1 theme-${theme} box-border`} id='content'>
-              { activeComponent && activeComponent === 'citizen_data' && (
-                <CitizenView citizen={undefined} theme={""} />
-              )}
-              { activeComponent && activeComponent === 'vehicle_data' && (
-                <h1>Vehicle data</h1>
-              )}
-              {activeComponent && activeComponent !== 'citizen_data' && activeComponent !== 'vehicle_data' && React.createElement(activeComponent.component, { theme, setActiveComponent, searchQuery, ...(activeComponent.props || {}) })}
-              {!activeComponent && (
-                <div className='flex flex-col gap-3 text-xl'>
-                  <h1>Benvenuto {playerData?.firstName || 'Duce'},</h1>
-                  <p>Clicca su una delle opzioni a sinistra per iniziare.</p>
+            <div 
+              className="mdt-header flex flex-row gap-3 justify-between h-[100px]"
+            >
+              <DepartmentHeader deptCity='Los Santos' deptText="Police Department" deptImage="https://static.wikia.nocookie.net/diamond-city/images/c/c0/LSPD.png" className={`theme-${theme}`} />
+              <div className={`header-right theme-${theme} flex flex-col gap-3 items-center h-full flex-1`}>
+                <div className="top-part flex w-full justify-end gap-2 h-[50px]">
+                  <Account playerData={playerData} theme={theme} />
+                  <button className="close-button text-red-500 hover:text-red-600 px-3" onClick={() => fetchNui("close")}>
+                    <FontAwesomeIcon icon={faTimes} className="text-4xl font-bold" />
+                  </button>
                 </div>
-              )}
+                <PageHeader activeComponent={activeComponent} setSearchQuery={setSearchQuery} header={header} />
+              </div>
             </div>
-          </div>
-        </MDTContext.Provider>
-      </div>
+            <div className="mdt-content flex flex-row flex-1 gap-3 overflow-hidden">
+              <div className="side-part w-[350px] gap-3 flex flex-col overflow-hidden">
+                <PagesContainer theme={`${theme}`} setActiveComponent={setActiveComponent} />
+                <BottomButtons />
+              </div>
+
+              <div className={`main-part flex-1 theme-${theme} box-border`} id='content'>
+                { activeComponent && activeComponent === 'citizen_data' && (
+                  <CitizenView citizen={undefined} theme={""} />
+                )}
+                { activeComponent && activeComponent === 'vehicle_data' && (
+                  <h1>Vehicle data</h1>
+                )}
+                {activeComponent && activeComponent !== 'citizen_data' && activeComponent !== 'vehicle_data' && React.createElement(activeComponent.component, { theme, setActiveComponent, searchQuery, ...(activeComponent.props || {}) })}
+                {!activeComponent && (
+                  <div className='flex flex-col gap-3 text-xl'>
+                    <h1>Benvenuto {playerData?.firstName || 'Duce'},</h1>
+                    <p>Clicca su una delle opzioni a sinistra per iniziare.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </MDTContext.Provider>
+        </div>
+      )}
     </div>
   );
 };

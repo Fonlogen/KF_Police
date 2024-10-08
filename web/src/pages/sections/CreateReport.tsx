@@ -15,6 +15,7 @@ import {
   faAdd,
   faCheck,
 } from '@fortawesome/free-solid-svg-icons';
+import { fetchNui } from '../../utils/fetchNui';
 
 interface CreateReportProps {
   report: number | any;
@@ -75,6 +76,8 @@ function CreateReport() {
       ])
       alert('Debug Report creato con successo!');
       setActiveComponent(null);
+    } else {
+      fetchNui('createReport', reportData);
     }
   };
 
@@ -162,15 +165,15 @@ function CreateReport() {
                     const tagData = data?.tags[tag];
                     return (
                       <div key={index} className='flex flex-row gap-2 items-center bg-blue-600 px-1 rounded-md cursor-pointer hover:bg-blue-700'
-                      style={{ backgroundColor: tagData.color || '#000000' }}
+                      style={{ backgroundColor: tagData?.color || '#000000' }}
                       >
-                        <span>{tagData.label}</span>
+                        <span>{tagData?.label}</span>
                         <span className='hover:text-red-500 cursor-pointer x-2 rounded-md text-md'
                           onClick={() => {
                             // Remove tag from tags
                             setReportData((prevData: any) => ({
                               ...prevData,
-                              tags: prevData.tags.filter((t: any) => t !== tagData.id),
+                              tags: prevData.tags.filter((t: any) => t !== tagData?.id),
                             }));
                           }}
                         >
