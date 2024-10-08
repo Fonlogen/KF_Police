@@ -28,6 +28,8 @@ function Reports() {
         theme: theme,
       },
     });
+
+    setHeader('Creazione Report');
   };
 
   const viewReport = async (report: any, theme: string) => {
@@ -54,8 +56,8 @@ function Reports() {
       {data !== null && (
         <div className='w-full h-full flex flex-col relative'>
 
-          <button className='absolute btn btn-primary bg-blue-500 text-white px-1 py-1 flex gap-2 items-center rounded-full bottom-5 left-0 right-0 mx-auto z-50 w-fit pr-3 hover:bg-blue-600' onClick={() => createReport(theme)}>
-            <span className='text-blue-500 bg-white rounded-full px-4 py-[10px]'>
+          <button className='absolute btn btn-primary bg-black/80 backdrop-blur-lg text-blue-600 px-1 py-1 flex gap-2 items-center rounded-2xl bottom-5 left-0 right-0 mx-auto z-50 w-fit pr-3 hover:bg-black/100 hover:text-white' onClick={() => createReport(theme)}>
+            <span className='text-white bg-gray-900/50 rounded-xl px-4 py-[10px] pointer-events-none'>
               <FontAwesomeIcon icon={faFileAlt} />
             </span>
             Crea un report
@@ -71,7 +73,7 @@ function Reports() {
             }
 
             {data?.reports &&
-              <div className='flex flex-col gap-3 rounded-lg p-2'>
+              <div className='flex flex-col gap-3 rounded-lg px-1'>
                 {
                   Object.keys(data.reports)
                     .filter((key: any) => {
@@ -89,7 +91,7 @@ function Reports() {
                     .map((reportKey: any, index: number) => {
                       const report = data.reports[reportKey];
                       return (
-                        <div key={index} className='flex flex-col gap-2 px-5 py-2 bg-[#252525] items-center rounded-2xl w-full h-26 max-h-26 overflow-hidden'>
+                        <div key={index} className='flex flex-col gap-2 px-4 py-3 bg-[#252525] items-center rounded-2xl w-full h-26 max-h-26 overflow-hidden'>
                           <div className='flex flex-row gap-2 w-full items-center justify-between'>
                             <div className='reportlist-item-left-part flex flex-col items-start flex text-left overflow-hidden'>
                               <span className='text-white text-lg font-bold'>{report.title.substring(0, 50)}{report.title.length > 50 ? '...' : ''} </span>
@@ -102,7 +104,7 @@ function Reports() {
                               </button>
                             </div>
                           </div>
-                          <div className='flex flex-row gap-2 w-full items-center justify-between'>
+                          <div className='flex flex-row gap-2 w-full items-center justify-between pt-2 border-t border-gray-600'>
                             <div className='flex flex-row gap-2 items-center'>
                               <span className='text-sm text-gray-400'>Creato da <b>{report.officer}</b> in data <b>{report.date}</b></span>
                             </div>
