@@ -13,21 +13,13 @@ RegisterNUICallback('getClientData', function(data, cb)
 end)
 
 function RequestDataUpdate()
-	-- Wait(500)
-	local result = lib.callback.await('KF_Police:Server:GetData', false)
-	for k, v in pairs(result) do
-		CurrentData[k] = v
-	end
-	
-	UpdateStartNuiData()
+	TriggerServerEvent('KF_Police:Server:GetData')
 end
 
-function UpdateStartNuiData(data)
-	UpdateNuiPlayerData()
-	UpdateNuiConfigData()
-	UpdateNuiTheme()
-	UpdateNuiData()
-end
+RegisterNetEvent('KF_Police:Client:SetData', function(key, data)
+    CurrentData[key] = data
+    UpdateNuiData()
+end)
 
 RegisterNUICallback('getEnabledPages', function(data, cb)
 	Wait(500)

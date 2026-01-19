@@ -9,13 +9,15 @@ reports = {}
 penalcode = {}
 
 lib.callback.register('KF_Police:Server:GetData', function(src)
-    return {
-        citizens = citizens,
-        vehicles = vehicles,
-        tags = tags,
-        reports = reports,
-        penalcode = penalcode,
-    }
+    TriggerClientEvent('KF_Police:Client:SetData', src, 'citizens', citizens)
+    Wait(500)
+    TriggerClientEvent('KF_Police:Client:SetData', src, 'vehicles', vehicles)
+    Wait(500)
+    TriggerClientEvent('KF_Police:Client:SetData', src, 'tags', tags)
+    Wait(500)
+    TriggerClientEvent('KF_Police:Client:SetData', src, 'reports', reports)
+    Wait(500)
+    TriggerClientEvent('KF_Police:Client:SetData', src, 'penalcode', penalcode)
 end)
 
 --- INTERNAL FUNCTIONS
