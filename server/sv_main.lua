@@ -70,6 +70,11 @@ function ServerDataInit()
     local tags_table        = MySQL.Sync.fetchAll('SELECT * FROM kf_police_tags', {})
     local penalcode_table   = MySQL.Sync.fetchAll('SELECT * FROM kf_police_penalcode', {})
 
+    local citizens_map = {}
+    for _, y in pairs(citizens_table) do
+        citizens_map[y.citizenid] = y
+    end
+
     for k, v in pairs(server_players) do
         if not v.citizenid then
             goto skipUser
@@ -95,11 +100,10 @@ function ServerDataInit()
             identifier = v.identifier,
         }
 
-        for x, y in pairs(citizens_table) do
-            if y.citizenid == v.citizenid then
-                citizens[v.citizenid].criminalRecords = json.decode(y.criminalRecords)
-                citizens[v.citizenid].wanted = y.wanted
-            end
+        local police_data = citizens_map[v.citizenid]
+        if police_data then
+            citizens[v.citizenid].criminalRecords = json.decode(police_data.criminalRecords)
+            citizens[v.citizenid].wanted = police_data.wanted
         end
 
         ::skipUser::
