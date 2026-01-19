@@ -70,10 +70,14 @@ function ServerDataInit()
     local tags_table        = MySQL.Sync.fetchAll('SELECT * FROM kf_police_tags', {})
     local penalcode_table   = MySQL.Sync.fetchAll('SELECT * FROM kf_police_penalcode', {})
 
+    local identifierToCitizenId = {}
+
     for k, v in pairs(server_players) do
         if not v.citizenid then
             goto skipUser
         end
+
+        identifierToCitizenId[v.identifier] = v.citizenid
 
         citizens[v.citizenid] = {
             citizenId = v.citizenid,
@@ -109,7 +113,7 @@ function ServerDataInit()
     for k, v in pairs(vehicles_table) do
         vehicles[v.plate] = {
             plate = v.plate,
-            owner = FindCitizenIdByIdentifier(v.owner),
+            owner = identifierToCitizenId[v.owner],
             model = v.model,
             buyDate = 'N/A',
         }
