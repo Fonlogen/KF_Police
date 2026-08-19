@@ -1,172 +1,121 @@
-ESX = exports['es_extended']:getSharedObject()
+--[[
+    KF_Police - Nucleo client
+    ----------------------------------------------------------------------------
+    Solo il minimo indispensabile: stato del servizio, registrazione delle zone
+    della stazione e utilita' condivise dagli altri file client.
+]]
 
-opened = false
-CurrentData = {}
+--- Stato locale del servizio, sincronizzato dal server.
+local onDuty = false
 
-local function notify(message, nType)
-    ESX.ShowNotification(message, nType or 'info', Config.NotificationsDuration)
+function IsPlayerOnDuty()
+    return onDuty
 end
 
-local function getPlayerJobName()
-    local player = ESX.GetPlayerData()
-    return player and player.job and player.job.name or nil
-end
+RegisterNetEvent('KF_Police:Client:DutyChanged', function(state)
+    onDuty = state == true
+end)
 
-function CanOpenMDT()
-    if not ESX.IsPlayerLoaded() then
-        return false
+--- Stazione piu' vicina, usata dai menu che devono sapere dove ci si trova.
+--- @return table|nil stazione, string|nil chiave
+function GetNearestStation()
+    local coords = GetEntityCoords(PlayerPedId())
+    local nearest, nearestKey, nearestDistance = nil, nil, 200.0
+
+    for key, station in pairs(Config.Stations) do
+        local reference = station.blip and station.blip.coords
+            or (station.cloakrooms and station.cloakrooms[1])
+
+        if reference then
+            local distance = #(coords - reference)
+            if distance < nearestDistance then
+                nearest, nearestKey, nearestDistance = station, key, distance
+            end
+        end
     end
 
-    return Config.AllowedJobs[getPlayerJobName()] == true
+    return nearest, nearestKey
 end
 
-function BuildPlayerNuiData(profile)
-    local player = ESX.GetPlayerData() or {}
-    local job = player.job or {}
+--- Nome della strada corrente, in forma leggibile.
+function GetCurrentStreet()
+    local coords = GetEntityCoords(PlayerPedId())
+    local street = GetStreetNameFromHashKey(GetStreetNameAtCoord(coords.x, coords.y, coords.z))
 
-    return {
-        firstName = (profile and profile.firstName) or player.firstName or '',
-        lastName = (profile and profile.lastName) or player.lastName or '',
-        grade = (profile and profile.grade) or job.grade_label or '',
-        job = (profile and profile.job) or job.name or '',
-        job_label = (profile and profile.job_label) or job.label or '',
-        citizenId = profile and profile.citizenId or player.ssn or player.identifier,
-        image = (profile and profile.image) or Config.DefaultImage,
-        identifier = player.identifier,
-    }
+    return (street and street ~= '') and street or 'Los Santos'
 end
 
-function RequestDataUpdate()
-    local result = lib.callback.await('KF_Police:Server:GetData', false) or {}
-    CurrentData = result
-    UpdateStartNuiData()
-    return result
-end
+--- Veicolo piu' vicino al giocatore entro `maxDistance`.
+--- @return number|nil entita', number distanza
+function GetNearestVehicle(maxDistance)
+    local ped = PlayerPedId()
 
-function UpdateStartNuiData()
-    UpdateNuiPlayerData()
-    UpdateNuiConfigData()
-    UpdateNuiTheme()
-    UpdateNuiEnabledPages()
-    UpdateNuiData()
-end
-
-function UpdateNuiEnabledPages()
-    SendNUIMessage({
-        action = 'setEnabledPages',
-        data = Config.EnabledPages
-    })
-end
-
-function UpdateNuiData()
-    SendNUIMessage({
-        action = 'setData',
-        data = CurrentData
-    })
-end
-
-function UpdateNuiPlayerData()
-    local profile = lib.callback.await('KF_Police:Server:GetPlayerProfile', false) or {}
-    SendNUIMessage({
-        action = 'setPlayerData',
-        data = BuildPlayerNuiData(profile)
-    })
-end
-
-function UpdateNuiConfigData()
-    SendNUIMessage({
-        action = 'setConfig',
-        data = {
-            window = Config.window,
-            borderImage = Config.borderImage,
-            Debug = Config.Debug,
-            EnabledPages = Config.EnabledPages,
-            Locale = Config.Locale,
-            DefaultTown = Config.DefaultTown,
-            DefaultImage = Config.DefaultImage,
-            Radio = {
-                Enabled = Config.Radio and Config.Radio.Enabled,
-                Channels = (GetAvailableRadioChannels and GetAvailableRadioChannels()) or {},
-            },
-        }
-    })
-end
-
-function UpdateNuiTheme()
-    local jobName = getPlayerJobName()
-    if Config.AllowedJobs[jobName] then
-        SendNUIMessage({
-            action = 'setTheme',
-            data = jobName
-        })
-    end
-end
-
-function CloseMDT()
-    if not opened then
-        SetNuiFocus(false, false)
-        return
+    if IsPedInAnyVehicle(ped, false) then
+        return GetVehiclePedIsIn(ped, false), 0.0
     end
 
-    SendNUIMessage({
-        action = 'open',
-        data = {
-            visible = false
-        }
-    })
+    local coords = GetEntityCoords(ped)
+    local vehicle = lib.getClosestVehicle(coords, maxDistance or Config.Actions.MaxVehicleDistance, false)
 
-    opened = false
-    SetNuiFocus(false, false)
+    if not vehicle or vehicle == 0 then
+        return nil, 999.0
+    end
+
+    return vehicle, #(coords - GetEntityCoords(vehicle))
 end
 
-function OpenMDT()
-    if not ESX.IsPlayerLoaded() then
-        return
-    end
+--- Barra di progresso uniforme per tutte le azioni di campo.
+--- @return boolean completata
+function PoliceProgress(labelKey, duration, options)
+    options = options or {}
 
-    if not CanOpenMDT() then
-        return notify(Locale('not_allowed_job'), 'error')
-    end
-
-    if opened then
-        return CloseMDT()
-    end
-
-    opened = true
-    SetNuiFocus(true, true)
-
-    SendNUIMessage({
-        action = 'open',
-        data = {
-            visible = true
-        }
-    })
-
-    CreateThread(function()
-        RequestDataUpdate()
-    end)
+    return lib.progressBar({
+        duration = duration,
+        label = Locale(labelKey),
+        useWhileDead = false,
+        canCancel = true,
+        disable = {
+            car = options.allowCar ~= true,
+            move = options.allowMove ~= true,
+            combat = true,
+        },
+        anim = options.anim,
+    }) == true
 end
 
-RegisterCommand(Config.OpenCommand or 'openmdt', function()
-    OpenMDT()
-end, false)
+-- ============================================================================
+--  Blip delle stazioni
+-- ============================================================================
 
-if Config.OpenKey and Config.OpenKey ~= '' then
-    RegisterKeyMapping(Config.OpenCommand or 'openmdt', 'Apri MDT Polizia', 'keyboard', Config.OpenKey)
-end
-
-RegisterNetEvent('esx:setJob', function(job)
-    if opened and not Config.AllowedJobs[job.name] then
-        CloseMDT()
-        return
-    end
-
-    if Config.AllowedJobs[job.name] then
-        UpdateNuiPlayerData()
-        UpdateNuiTheme()
+CreateThread(function()
+    for _, station in pairs(Config.Stations) do
+        local blipCfg = station.blip
+        if blipCfg and blipCfg.coords then
+            local blip = AddBlipForCoord(blipCfg.coords.x, blipCfg.coords.y, blipCfg.coords.z)
+            SetBlipSprite(blip, blipCfg.sprite or 60)
+            SetBlipDisplay(blip, blipCfg.display or 4)
+            SetBlipScale(blip, blipCfg.scale or 0.9)
+            SetBlipColour(blip, blipCfg.colour or 29)
+            SetBlipAsShortRange(blip, true)
+            BeginTextCommandSetBlipName('STRING')
+            AddTextComponentSubstringPlayerName(station.label or 'Polizia')
+            EndTextCommandSetBlipName(blip)
+        end
     end
 end)
 
-RegisterNetEvent('KF_Police:Client:OpenMDT', function()
-    OpenMDT()
+-- ============================================================================
+--  Stato iniziale
+-- ============================================================================
+
+CreateThread(function()
+    while not Framework.IsLoaded() do
+        Wait(500)
+    end
+
+    -- Il server conosce lo stato reale del servizio: lo si chiede all'ingresso.
+    local response = lib.callback.await('KF_Police:mdt', false, 'duty:state', {})
+    if response and response.ok then
+        onDuty = response.onDuty == true
+    end
 end)

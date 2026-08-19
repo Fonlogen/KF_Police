@@ -1,22 +1,17 @@
+--[[
+    KF_Police - Radio (client)
+    ----------------------------------------------------------------------------
+    Il pannello radio vive dentro al tablet (RadioDock nel telaio + pagina Radio):
+    non c'e' piu' un overlay separato. La chiamata agli export di pma-voice passa
+    da modules/voice/cl_pma.lua, che usa il colon-call corretto (bug L1).
+]]
+
 local currentChannelId = nil
 local radioReady = false
+local volume = nil
 
 local function radioCfg()
     return Config.Radio or {}
-end
-
-local function callVoiceExport(exportCfg, ...)
-    if not exportCfg or not exportCfg.resource or not exportCfg.name then
-        return false
-    end
-    if GetResourceState(exportCfg.resource) ~= 'started' then
-        return false
-    end
-
-    local ok = pcall(function(...)
-        exports[exportCfg.resource][exportCfg.name](...)
-    end, ...)
-    return ok
 end
 
 local function playRadioSound(kind)
@@ -30,17 +25,12 @@ local function playRadioSound(kind)
         return
     end
 
-    PlaySoundFrontend(-1, sound.dict or 'Click_Special', sound.name or 'WEB_NAVIGATION_SOUNDS_PHONE', true)
+    PlaySoundFrontend(-1, sound.name or 'WEB_NAVIGATION_SOUNDS_PHONE', sound.dict or 'Click_Special', true)
 end
 
-local function getPlayerJob()
-    local player = ESX.GetPlayerData() or {}
-    local job = player.job or {}
-    return job.name, tonumber(job.grade) or 0
-end
-
+--- Il canale e' accessibile al lavoro e al grado dell'agente?
 local function canUseChannel(channel)
-    local jobName, grade = getPlayerJob()
+    local jobName, grade = Framework.GetJob()
     if not jobName then
         return false
     end
@@ -66,69 +56,92 @@ local function hasRadioItem()
         return true
     end
 
-    local player = ESX.GetPlayerData() or {}
-    for _, item in pairs(player.inventory or {}) do
-        if item.name == cfg.Item and (item.count or 0) > 0 then
-            return true
-        end
-    end
-    return false
+    return Framework.HasItem(cfg.Item or 'radio', 1)
 end
 
+local function findChannel(channelId)
+    for _, channel in ipairs(radioCfg().Channels or {}) do
+        if channel.id == channelId then
+            return channel
+        end
+    end
+
+    return nil
+end
+
+--- Canali autorizzati per l'agente, con lo stato di connessione.
 function GetAvailableRadioChannels()
     local list = {}
+
     for _, channel in ipairs(radioCfg().Channels or {}) do
         if canUseChannel(channel) then
             list[#list + 1] = {
                 id = channel.id,
                 label = channel.label,
+                short = channel.short or ('CH%d'):format(channel.channel or 0),
                 channel = channel.channel,
-                color = channel.color,
                 connected = currentChannelId == channel.id,
             }
         end
     end
+
     return list
 end
 
 function GetRadioState()
+    local channel = currentChannelId and findChannel(currentChannelId) or nil
+
     return {
-        enabled = radioCfg().Enabled == true,
+        enabled = radioCfg().Enabled == true and Voice.Available(),
         current = currentChannelId,
+        currentLabel = channel and channel.label or nil,
+        currentNumber = channel and channel.channel or nil,
         channels = GetAvailableRadioChannels(),
-        volume = radioCfg().DefaultVolume or 60,
+        volume = volume or radioCfg().DefaultVolume or 60,
+        listeners = currentChannelId and Voice.GetListenerCount() or 0,
+        talking = currentChannelId and Voice.IsAnyoneTalking() or false,
     }
 end
 
-function LeavePoliceRadio()
-    local cfg = radioCfg()
-    if not cfg.Enabled then
+function PushRadioStateToNui()
+    if not MdtIsOpen() then
         return
     end
 
-    callVoiceExport(cfg.Exports and cfg.Exports.leave)
-    currentChannelId = nil
-    playRadioSound('Disconnect')
+    SendNUIMessage({
+        action = 'mdt:radio',
+        data = GetRadioState(),
+    })
 end
 
+function LeavePoliceRadio()
+    if not currentChannelId then
+        return
+    end
+
+    Voice.Leave()
+    currentChannelId = nil
+    playRadioSound('Disconnect')
+    PushRadioStateToNui()
+end
+
+--- @return boolean ok, string chiave del messaggio
 function JoinPoliceRadio(channelId)
     local cfg = radioCfg()
+
     if not cfg.Enabled then
         return false, 'radio_disabled'
+    end
+
+    if not Voice.Available() then
+        return false, 'radio_unavailable'
     end
 
     if not hasRadioItem() then
         return false, 'radio_no_item'
     end
 
-    local selected = nil
-    for _, channel in ipairs(cfg.Channels or {}) do
-        if channel.id == channelId then
-            selected = channel
-            break
-        end
-    end
-
+    local selected = findChannel(channelId)
     if not selected or not canUseChannel(selected) then
         return false, 'radio_not_allowed'
     end
@@ -139,36 +152,71 @@ function JoinPoliceRadio(channelId)
     end
 
     if not radioReady then
-        callVoiceExport(cfg.Exports and cfg.Exports.setProperty, 'radioEnabled', true)
-        callVoiceExport(cfg.Exports and cfg.Exports.setVolume, cfg.DefaultVolume or 60)
+        Voice.SetRadioEnabled(true)
+        Voice.SetVolume(volume or cfg.DefaultVolume or 60)
         radioReady = true
     end
 
-    callVoiceExport(cfg.Exports and cfg.Exports.setChannel, selected.channel)
+    if not Voice.SetChannel(selected.channel) then
+        return false, 'radio_unavailable'
+    end
+
     currentChannelId = selected.id
     playRadioSound('Connect')
+    PushRadioStateToNui()
+
     return true, 'radio_connected'
 end
 
-RegisterNUICallback('getRadioState', function(_, cb)
-    cb(GetRadioState())
+-- ============================================================================
+--  Endpoint locali del MDT (la radio e' interamente lato client)
+-- ============================================================================
+
+RegisterLocalMdtEndpoint('radio:state', function()
+    return { ok = true, radio = GetRadioState() }
 end)
 
-RegisterNUICallback('toggleRadioChannel', function(data, cb)
-    local ok, message = JoinPoliceRadio(data and data.id)
+RegisterLocalMdtEndpoint('radio:join', function(payload)
+    local ok, message = JoinPoliceRadio(payload and payload.channelId)
+
     if message then
-        ESX.ShowNotification(Locale(message), ok and 'success' or 'error', Config.NotificationsDuration)
+        Notify(Locale(message), ok and 'success' or 'error')
     end
-    cb({
-        ok = ok == true,
-        message = message,
-        state = GetRadioState(),
-    })
+
+    return { ok = ok, message = Locale(message or ''), radio = GetRadioState() }
 end)
 
-RegisterNUICallback('leaveRadio', function(_, cb)
+RegisterLocalMdtEndpoint('radio:leave', function()
     LeavePoliceRadio()
-    cb({ ok = true, state = GetRadioState() })
+    return { ok = true, radio = GetRadioState() }
+end)
+
+RegisterLocalMdtEndpoint('radio:volume', function(payload)
+    volume = ClampInt(payload and payload.volume, 0, 100, 60)
+    Voice.SetVolume(volume)
+
+    return { ok = true, radio = GetRadioState() }
+end)
+
+-- ============================================================================
+--  Sincronizzazione
+-- ============================================================================
+
+--- Lo stato radio cambia anche per eventi esterni (qualcuno entra, qualcuno
+--- parla): il dock si aggiorna senza che la NUI debba interrogare.
+AddEventHandler('KF_Police:Client:RadioStateChanged', function()
+    PushRadioStateToNui()
+end)
+
+RegisterNetEvent('KF_Police:Client:LeaveRadio', function()
+    LeavePoliceRadio()
+end)
+
+RegisterNetEvent('esx:setJob', function(job)
+    -- Cambiando lavoro il canale non e' piu' autorizzato.
+    if currentChannelId and not IsAllowedJob(job and job.name) then
+        LeavePoliceRadio()
+    end
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
