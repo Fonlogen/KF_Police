@@ -21,10 +21,10 @@ approvato dal committente, a dimensione reale. Tutta la §3 descrive quel file.
 
 | Voce | Valore |
 |---|---|
-| Percorso risorsa | `C:\Users\Administrator\Desktop\Server\resources\[kfdev]\KF_Police` |
-| Risorsa da assorbire | `C:\Users\Administrator\Desktop\Server\resources\[esx_addons]\esx_policejob` |
+| Percorso risorsa | `D:\Server\FiveM\KFTest\resources\[kfdev]\KF_Police` |
+| Risorsa da assorbire | `D:\Server\FiveM\KFTest\resources\[esx_addons]\esx_policejob` |
 | Framework | ESX **1.14.0** (`[core]/es_extended`) |
-| Database | MySQL `testserver` · client in `C:\xampp\mysql\bin\mysql.exe` (utente `root`, senza password) |
+| Database | MySQL `kftest_esx` · client su container docker MariaDB (utente `root`, password NegroPene123) |
 | Librerie disponibili | `ox_lib`, `ox_target`, `ox_inventory` 2.44.1, `oxmysql`, `pma-voice`, `esx_billing`, `esx_society`, `fivem-appearance`, `skinchanger` |
 | Toolchain UI | React 18 + TypeScript + Vite 5 + Tailwind 3 in `web/` (`node_modules` già installati) |
 | Build UI | `cd web && npm run build` (esegue `tsc && vite build` → `web/build/`) |
@@ -842,7 +842,7 @@ l'interfaccia è sovrapponibile al mockup.
 - `pma-voice`: export `setRadioChannel`, `removePlayerFromRadio`, `setRadioVolume`, `setVoiceProperty`
 - `esx_billing`: export `BillPlayerByIdentifier` confermato (`server/main.lua:65`)
 - `esx_society`: export `registerSociety` + evento `esx_society:openBossMenu`
-- DB `testserver`: 5 utenti, **0 veicoli posseduti**, 7 articoli codice penale, 52 righe `fine_types`,
+- DB `kfdev_esx`: 5 utenti, **0 veicoli posseduti**, 7 articoli codice penale, 52 righe `fine_types`,
   11 licenze utente, 1 profilo in `kf_police_citizens` (orfano), 0 report
 - Gradi `police`: `recruit`(0) `officer`(1) `sergeant`(2) `lieutenant`(3) `boss`(4) = *Captain*
 - `users.nationality` esiste (default `Los Santos`) → usare quella al posto di `Config.DefaultTown`
