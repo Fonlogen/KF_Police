@@ -1,476 +1,237 @@
-ESX = exports['es_extended']:getSharedObject()
+--[[
+    KF_Police - Nucleo server e dispatcher dei callback MDT
+    ----------------------------------------------------------------------------
+    CORREZIONE BUG L4
+    ----------------------------------------------------------------------------
+    Il vecchio `ServerDataInit` caricava tutti gli utenti e tutti i veicoli in
+    RAM e `UpdateMDTData()` li ribroadcastava a `-1` a ogni reato, nota o
+    rapporto: con 3000 cittadini insostenibile, e comunque una fuga di dati.
+    Qui non esiste piu' nessuna cache globale: ogni schermata chiede solo la
+    propria pagina, e le scritture emettono un'invalidazione mirata.
 
-jobs = {}
-citizens = {}
-vehicles = {}
-tags = {}
-reports = {}
-penalcode = {}
-wantedList = {}
-notes = {}
+    Tutti i callback della NUI passano da un unico punto (`KF_Police:mdt`), che
+    rivalida giocatore, lavoro, permesso di grado e rate limit prima di
+    smistare (vedi sv_permissions.lua).
+]]
 
-local initialized = false
+--- endpoint -> { permission, handler }
+local endpoints = {}
 
-local function notify(src, message, nType)
-    TriggerClientEvent('esx:showNotification', src, message, nType or 'info', Config.NotificationsDuration)
+--- Registra un endpoint MDT.
+--- @param name string es. 'citizens:search'
+--- @param permission string|nil permesso richiesto
+--- @param handler fun(officer: table, payload: table, src: number): any
+function RegisterMdtEndpoint(name, permission, handler)
+    endpoints[name] = { permission = permission, handler = handler }
 end
 
-function IsAllowedJob(jobName)
-    return jobName and Config.AllowedJobs[jobName] == true
-end
+--- Risposta di errore uniforme.
+function MdtError(key, extra)
+    local response = { ok = false, error = key, message = Locale(key) }
 
-function GetOfficer(src)
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then
-        return nil
-    end
-
-    if not IsAllowedJob(xPlayer.job and xPlayer.job.name) then
-        return nil
-    end
-
-    return xPlayer
-end
-
-function GetOfficerName(xPlayer)
-    if not xPlayer then
-        return 'Sconosciuto'
-    end
-
-    local firstName = xPlayer.get('firstName')
-    local lastName = xPlayer.get('lastName')
-    if firstName or lastName then
-        return (('%s %s'):format(firstName or '', lastName or '')):gsub('^%s+', ''):gsub('%s+$', '')
-    end
-
-    return xPlayer.getName() or GetPlayerName(xPlayer.source) or 'Sconosciuto'
-end
-
-function GetCitizenId(user)
-    return user.ssn or user.citizenid or user.citizenId or user.identifier
-end
-
-function FindCitizenById(citizenId)
-    if not citizenId then
-        return nil, nil
-    end
-
-    citizenId = tostring(citizenId)
-    if citizens[citizenId] then
-        return citizens[citizenId], citizenId
-    end
-
-    for id, citizen in pairs(citizens) do
-        if tostring(id) == citizenId or tostring(citizen.citizenId) == citizenId or citizen.identifier == citizenId then
-            return citizen, id
+    if type(extra) == 'table' then
+        for k, v in pairs(extra) do
+            response[k] = v
         end
     end
 
-    return nil, nil
+    return response
 end
 
-function FindCitizenIdByIdentifier(identifier)
-    if not identifier then
-        return nil
+--- Risposta positiva uniforme.
+function MdtOk(data)
+    if type(data) ~= 'table' then
+        return { ok = true, data = data }
     end
 
-    for id, citizen in pairs(citizens) do
-        if citizen.identifier == identifier or tostring(citizen.citizenId) == tostring(identifier) then
-            return id
-        end
-    end
-
-    return nil
+    data.ok = true
+    return data
 end
 
-local function safeQuery(query, params)
-    local ok, result = pcall(function()
-        return MySQL.query.await(query, params or {})
-    end)
+lib.callback.register('KF_Police:mdt', function(src, endpoint, payload)
+    if type(endpoint) ~= 'string' then
+        return MdtError('invalid_data')
+    end
 
+    local definition = endpoints[endpoint]
+    if not definition then
+        Logger.Warn('Endpoint MDT sconosciuto richiesto da %s: %s', src, endpoint)
+        return MdtError('invalid_data')
+    end
+
+    if not Database.IsReady() then
+        return MdtError('mdt_not_ready')
+    end
+
+    local officer, reason = RequirePermission(src, definition.permission)
+    if not officer then
+        return MdtError(reason or 'no_permission')
+    end
+
+    if type(payload) ~= 'table' then
+        payload = {}
+    end
+
+    local ok, result = pcall(definition.handler, officer, payload, src)
     if not ok then
-        print(('[KF_Police] Query failed: %s'):format(tostring(result)))
-        return {}
+        Logger.Error('Endpoint %s ha generato un errore: %s', endpoint, tostring(result))
+        return MdtError('invalid_data')
     end
 
-    return result or {}
+    return result or MdtOk({})
+end)
+
+-- ============================================================================
+--  Invalidazione mirata (sostituisce il broadcast totale)
+-- ============================================================================
+
+--- Avvisa i client che una vista e' cambiata: ricaricano solo quella.
+--- @param scope 'citizen'|'citizens'|'reports'|'wanted'|'vehicles'|'jail'|'penalcode'|'roster'
+--- @param id string|number|nil
+function Invalidate(scope, id)
+    TriggerClientEvent('KF_Police:Client:Invalidate', -1, {
+        scope = scope,
+        id = id and tostring(id) or nil,
+    })
 end
 
-local function tableExists(tableName)
-    local result = safeQuery('SHOW TABLES LIKE ?', { tableName })
-    return result[1] ~= nil
+--- Invia solo i contatori di navigazione (badge della sidebar).
+function PushCounters()
+    TriggerClientEvent('KF_Police:Client:Counters', -1, GetMdtCounters())
 end
 
-local function columnExists(tableName, columnName)
-    local result = safeQuery(('SHOW COLUMNS FROM `%s` LIKE ?'):format(tableName), { columnName })
-    return result[1] ~= nil
-end
-
-local function retrive_jobs()
-    jobs = {}
-
-    local job_grades_db = safeQuery('SELECT * FROM job_grades', {})
-    for _, v in pairs(job_grades_db) do
-        jobs[v.job_name] = jobs[v.job_name] or {}
-        jobs[v.job_name][tonumber(v.grade) or v.grade] = {
-            label = v.label,
-            salary = v.salary,
-            name = v.name,
-            grade = tonumber(v.grade) or v.grade,
-            job_name = v.job_name
-        }
-    end
-
-    local db_jobs = safeQuery('SELECT * FROM jobs', {})
-    for _, v in pairs(db_jobs) do
-        jobs[v.name] = jobs[v.name] or {}
-        jobs[v.name].label = v.label
-        jobs[v.name].name = v.name
-    end
-end
-
-local function getJobInfo(jobName, jobGrade)
-    jobGrade = tonumber(jobGrade) or 0
-    local job = jobs[jobName] or {}
-    local grade = job[jobGrade] or {}
+--- Contatori mostrati nei badge della sidebar.
+function GetMdtCounters()
+    local wanted = Database.Scalar('SELECT COUNT(*) FROM kf_police_profiles WHERE is_wanted = 1') or 0
+    local jailed = Database.Scalar('SELECT COUNT(*) FROM kf_police_jail WHERE released_at IS NULL AND seconds_remaining > 0') or 0
+    local openReports = Database.Scalar("SELECT COUNT(*) FROM kf_police_reports WHERE status = 'open'") or 0
 
     return {
-        job_name = jobName or 'unemployed',
-        job_grade = jobGrade,
-        job_grade_label = grade.label or 'Disoccupato',
-        job_label = job.label or jobName or 'Disoccupato'
+        wanted = tonumber(wanted) or 0,
+        jail = tonumber(jailed) or 0,
+        reports = tonumber(openReports) or 0,
+        duty = CountOnDuty and CountOnDuty() or 0,
     }
 end
 
-local function getPhoneNumber(identifier)
-    if not identifier or not tableExists('phone_phones') then
-        return 'N/A'
+-- ============================================================================
+--  mdt:bootstrap
+-- ============================================================================
+
+RegisterMdtEndpoint('bootstrap', 'mdt.view', function(officer)
+    local info = OfficerInfo(officer)
+    local profile = Database.Single(
+        'SELECT mugshot FROM kf_police_profiles WHERE identifier = ?', { info.identifier })
+
+    local pages = {}
+    for _, page in ipairs(Config.EnabledPages) do
+        pages[#pages + 1] = page
     end
 
-    local result = safeQuery('SELECT phone_number FROM phone_phones WHERE owner_id = ? LIMIT 1', { identifier })
-    if result[1] and result[1].phone_number then
-        return tostring(result[1].phone_number)
-    end
+    return MdtOk({
+        officer = {
+            identifier = info.identifier,
+            name = info.name,
+            firstName = officer.get and officer.get('firstName') or '',
+            lastName = officer.get and officer.get('lastName') or '',
+            ssn = info.ssn,
+            job = info.job,
+            jobLabel = officer.job and officer.job.label or info.job,
+            grade = info.grade,
+            gradeName = info.gradeName,
+            gradeLabel = info.gradeLabel,
+            mugshot = profile and profile.mugshot or nil,
+            onDuty = IsOnDuty and IsOnDuty(info.identifier) or false,
+        },
+        permissions = PermissionList(info.job, info.grade),
+        pages = pages,
+        counters = GetMdtCounters(),
+        ui = {
+            pageSize = Config.PageSize,
+            defaultImage = Config.DefaultImage,
+            locale = Config.Locale,
+        },
+        radio = {
+            enabled = Config.Radio.Enabled == true,
+        },
+    })
+end)
 
-    return 'N/A'
-end
+-- ============================================================================
+--  Avvio
+-- ============================================================================
 
-local function getCitizenLicenses(identifier)
-    local licenses = {}
-    if not identifier or not tableExists('user_licenses') then
-        return licenses
-    end
+CreateThread(function()
+    Database.WaitReady(30000)
 
-    local rows = {}
-    if tableExists('licenses') then
-        rows = safeQuery([[
-            SELECT user_licenses.type, COALESCE(licenses.label, user_licenses.type) AS label
-            FROM user_licenses
-            LEFT JOIN licenses ON licenses.type = user_licenses.type
-            WHERE user_licenses.owner = ?
-        ]], { identifier })
-    else
-        rows = safeQuery('SELECT type FROM user_licenses WHERE owner = ?', { identifier })
-    end
-
-    for _, row in pairs(rows) do
-        licenses[row.type] = {
-            label = row.label or row.type,
-            type = row.type,
-            date = row.date or 'N/A',
-            status = 'active'
-        }
-    end
-
-    return licenses
-end
-
-local function getCitizenProperties(identifier)
-    local properties = {}
-    if not identifier then
-        return properties
-    end
-
-    if tableExists('coin_system_items') then
-        local rows = safeQuery('SELECT property_id, label, category, coords FROM coin_system_items WHERE owner = ?', { identifier })
-        for _, row in pairs(rows) do
-            properties[row.property_id] = {
-                label = row.label or row.property_id,
-                address = row.coords or 'N/A',
-                city = row.category or Config.DefaultTown
-            }
-        end
-    end
-
-    return properties
-end
-
-local function decodeVehicleModel(vehicleJson)
-    local props = DecodeJson(vehicleJson, {})
-    return props.model or props.name or 'Sconosciuto'
-end
-
-local function ensureCitizenProfile(citizenId)
-    if not citizenId then
+    if not Database.IsReady() then
+        Logger.Error('Database non pronto: il MDT restera chiuso')
         return
     end
 
-    MySQL.insert.await(
-        'INSERT IGNORE INTO kf_police_citizens (citizenid, criminalRecords, wanted, notes) VALUES (?, ?, ?, ?)',
-        { tostring(citizenId), '{}', 0, '[]' }
-    )
-end
-
-local function buildCitizenReports(citizenId)
-    local citizenReports = {}
-    if not citizenId then
-        return citizenReports
+    local items = { Config.OpenItem }
+    for _, alias in ipairs(Config.OpenItemAliases or {}) do
+        items[#items + 1] = alias
     end
 
-    citizenId = tostring(citizenId)
-    for reportId, report in pairs(reports) do
-        local involved = report.involved or {}
-        for _, involvedId in pairs(involved) do
-            if tostring(involvedId) == citizenId then
-                citizenReports[tostring(reportId)] = {
-                    date = report.date,
-                    officer = report.officer,
-                    title = report.title,
-                    report = report.description
-                }
-                break
-            end
-        end
-    end
-
-    return citizenReports
-end
-
-function RefreshWantedList()
-    wantedList = {}
-    local index = 1
-
-    for citizenId, citizen in pairs(citizens) do
-        if citizen.wanted then
-            wantedList[tostring(index)] = {
-                id = index,
-                citizen = citizenId,
-                reason = citizen.wantedReason or 'Ricercato',
-                wantedBy = citizen.wantedBy or 'LSPD'
-            }
-            index = index + 1
-        end
-    end
-end
-
-function AttachCitizenExtras()
-    for citizenId, citizen in pairs(citizens) do
-        citizen.reports = buildCitizenReports(citizenId)
-        citizen.notes = notes[citizenId] or citizen.notes or {}
-    end
-end
-
-function BuildMdtPayload()
-    AttachCitizenExtras()
-    RefreshWantedList()
-
-    return {
-        citizens = citizens,
-        vehicles = vehicles,
-        tags = tags,
-        reports = reports,
-        penalcode = penalcode,
-        penalCode = penalcode,
-        wantedList = wantedList,
-    }
-end
-
-function ServerDataInit()
-    citizens = {}
-    vehicles = {}
-    tags = {}
-    reports = {}
-    penalcode = {}
-    notes = {}
-
-    retrive_jobs()
-
-    local usersQuery = 'SELECT identifier, firstname, lastname, job, job_grade, dateofbirth, sex'
-    if tableExists('users') and columnExists('users', 'ssn') then
-        usersQuery = usersQuery .. ', ssn'
-    end
-    if tableExists('users') and columnExists('users', 'phone_number') then
-        usersQuery = usersQuery .. ', phone_number'
-    end
-    usersQuery = usersQuery .. ' FROM users'
-
-    local server_players = safeQuery(usersQuery, {})
-    local citizens_table = tableExists('kf_police_citizens') and safeQuery('SELECT * FROM kf_police_citizens', {}) or {}
-    local reports_table = tableExists('kf_police_reports') and safeQuery('SELECT * FROM kf_police_reports', {}) or {}
-    local tags_table = tableExists('kf_police_tags') and safeQuery('SELECT * FROM kf_police_tags', {}) or {}
-    local penalcode_table = tableExists('kf_police_penalcode') and safeQuery('SELECT * FROM kf_police_penalcode', {}) or {}
-    local vehicles_table = tableExists('owned_vehicles') and safeQuery('SELECT * FROM owned_vehicles', {}) or {}
-
-    local extraByCitizen = {}
-    for _, row in pairs(citizens_table) do
-        extraByCitizen[tostring(row.citizenid)] = row
-    end
-
-    for _, user in pairs(server_players) do
-        local citizenId = GetCitizenId(user)
-        if citizenId then
-            citizenId = tostring(citizenId)
-            local extra = extraByCitizen[citizenId] or extraByCitizen[tostring(user.identifier)] or {}
-            local criminalRecords = NormalizeList(DecodeJson(extra.criminalRecords, {}))
-            local citizenNotes = NormalizeList(extra.notes)
-
-            citizens[citizenId] = {
-                citizenId = citizenId,
-                firstname = user.firstname or 'Sconosciuto',
-                lastname = user.lastname or '',
-                job = getJobInfo(user.job, user.job_grade),
-                phoneNumber = user.phone_number or getPhoneNumber(user.identifier),
-                phone_number = user.phone_number or getPhoneNumber(user.identifier),
-                criminalRecord = criminalRecords,
-                criminalRecords = criminalRecords,
-                licenses = getCitizenLicenses(user.identifier),
-                properties = getCitizenProperties(user.identifier),
-                wanted = extra.wanted == true or tonumber(extra.wanted) == 1,
-                wantedReason = extra.wantedReason or extra.wanted_reason or '',
-                wantedBy = extra.wantedBy or extra.wanted_by or '',
-                town = user.town or Config.DefaultTown,
-                image = extra.image or user.image or Config.DefaultImage,
-                identifier = user.identifier,
-                dateofbirth = user.dateofbirth,
-                sex = user.sex,
-                notes = citizenNotes,
-                reports = {},
-            }
-
-            notes[citizenId] = citizenNotes
-        end
-    end
-
-    for _, vehicle in pairs(vehicles_table) do
-        if vehicle.plate then
-            local plate = tostring(vehicle.plate):gsub('^%s+', ''):gsub('%s+$', '')
-            vehicles[plate] = {
-                plate = plate,
-                owner = FindCitizenIdByIdentifier(vehicle.owner) or vehicle.owner,
-                model = vehicle.model or decodeVehicleModel(vehicle.vehicle),
-                label = vehicle.label or vehicle.model or decodeVehicleModel(vehicle.vehicle),
-                buyDate = vehicle.stored ~= nil and (tonumber(vehicle.stored) == 1 and 'In garage' or 'Fuori') or 'N/A',
-                pounded = vehicle.pound ~= nil and vehicle.pound ~= '' and vehicle.pound ~= 0,
-                stolen = false,
-                type = vehicle.type or 'car',
-            }
-        end
-    end
-
-    for _, report in pairs(reports_table) do
-        local reportId = tostring(report.id)
-        reports[reportId] = {
-            id = tonumber(report.id) or report.id,
-            title = report.title or 'Senza titolo',
-            description = report.description or '',
-            officer = report.officer or 'Sconosciuto',
-            officerId = report.officer_id or report.officerId,
-            officer_id = report.officer_id or report.officerId,
-            date = report.date and tostring(report.date) or os.date('%Y-%m-%d %H:%M:%S'),
-            location = report.location or 'Unknown',
-            tags = NormalizeList(report.tags),
-            involved = NormalizeList(report.involved),
-            involved_vehicles = NormalizeList(report.involved_vehicles),
-        }
-    end
-
-    for _, tag in pairs(tags_table) do
-        tags[tostring(tag.id)] = {
-            id = tonumber(tag.id) or tag.id,
-            label = tag.label,
-            color = tag.color or '#333333',
-        }
-    end
-
-    for _, article in pairs(penalcode_table) do
-        penalcode[tostring(article.id)] = {
-            id = tonumber(article.id) or article.id,
-            title = article.title,
-            crime = article.title,
-            description = article.description or '',
-            sanction = article.sanction or '',
-            fine = article.fine,
-            jailTime = article.jailTime or article.jail_time,
-        }
-    end
-
-    AttachCitizenExtras()
-    RefreshWantedList()
-    initialized = true
-    print(('[KF_Police] MDT loaded: %s citizens, %s vehicles, %s reports'):format(
-        TableCount(citizens),
-        TableCount(vehicles),
-        TableCount(reports)
-    ))
-end
-
-lib.callback.register('KF_Police:Server:GetData', function(src)
-    local xPlayer = GetOfficer(src)
-    if not xPlayer then
-        return {
-            citizens = {},
-            vehicles = {},
-            tags = {},
-            reports = {},
-            penalcode = {},
-            penalCode = {},
-            wantedList = {},
-        }
-    end
-
-    if not initialized then
-        ServerDataInit()
-    end
-
-    return BuildMdtPayload()
-end)
-
-lib.callback.register('KF_Police:Server:GetPlayerProfile', function(src)
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then
-        return {}
-    end
-
-    local citizenId = xPlayer.getSSN and xPlayer.getSSN() or xPlayer.identifier
-    local citizen = FindCitizenById(citizenId)
-
-    return {
-        firstName = xPlayer.get('firstName') or (citizen and citizen.firstname) or '',
-        lastName = xPlayer.get('lastName') or (citizen and citizen.lastname) or '',
-        grade = xPlayer.job and xPlayer.job.grade_label or '',
-        job = xPlayer.job and xPlayer.job.name or '',
-        job_label = xPlayer.job and xPlayer.job.label or '',
-        citizenId = citizenId,
-        image = (citizen and citizen.image) or Config.DefaultImage,
-    }
-end)
-
-CreateThread(function()
-    Wait(1000)
-    if Config.AutoDatabaseCreation then
-        EnsurePoliceDatabase()
-    end
-    ServerDataInit()
-
-    if Config.OpenItem and Config.OpenItem ~= '' then
-        pcall(function()
-            ESX.RegisterUsableItem(Config.OpenItem, function(source)
-                if not GetOfficer(source) then
-                    return TriggerClientEvent('esx:showNotification', source, Locale('not_allowed_job'), 'error', Config.NotificationsDuration)
+    for _, item in ipairs(items) do
+        if item and item ~= '' then
+            Framework.RegisterUsableItem(item, function(src)
+                if not GetOfficer(src) then
+                    return Framework.Notify(src, Locale('not_allowed_job'), 'error')
                 end
 
-                TriggerClientEvent('KF_Police:Client:OpenMDT', source)
+                TriggerClientEvent('KF_Police:Client:OpenMDT', src)
             end)
-        end)
+        end
+    end
+
+    Logger.Info('Pronto (framework=%s, target=%s, inventario=%s)',
+        Config.Framework, Config.Target, Config.Inventory)
+end)
+
+-- ============================================================================
+--  Registrazioni ereditate da esx_policejob
+--  Servizi condivisi con altre risorse: vanno mantenuti anche dopo la
+--  dismissione di esx_policejob, altrimenti il telefono perde il contatto di
+--  allerta e la societa' perde il conto.
+-- ============================================================================
+
+CreateThread(function()
+    Wait(2000)
+
+    -- Contatto di allerta sul telefono (esx_phone e lb-phone).
+    pcall(function()
+        TriggerEvent('esx_phone:registerNumber', 'police', 'Polizia', true, true)
+    end)
+
+    -- Societa': conto, assunzioni e salari restano su esx_society.
+    pcall(function()
+        TriggerEvent('esx_society:registerSociety', 'police', 'LSPD',
+            Config.Society, Config.Society, Config.Society, { type = 'public' })
+    end)
+end)
+
+--- Allerta polizia da altre risorse (telefono, negozi, rapine).
+--- Sostituisce `esx_policejob:...` mantenendo la stessa semantica.
+RegisterNetEvent('KF_Police:Server:Alert', function(data)
+    if type(data) ~= 'table' then
+        return
+    end
+
+    local message = SanitizeText(data.message, 200)
+    if message == '' then
+        return
+    end
+
+    for _, xPlayer in pairs(Framework.GetOnlinePlayers()) do
+        local jobName = Framework.GetJob(xPlayer)
+        if IsPoliceJob(jobName) then
+            TriggerClientEvent('KF_Police:Client:Alert', xPlayer.source, {
+                message = message,
+                coords = data.coords,
+                blip = data.blip ~= false,
+            })
+        end
     end
 end)

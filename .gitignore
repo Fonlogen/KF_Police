@@ -1,3 +1,12 @@
 
 # Visual companion session artifacts
 .superpowers/
+
+# Bundle NUI generato: si ricostruisce con `cd web && npm run build`
+web/build/
+
+# Dipendenze UI
+web/node_modules/
+
+# Dump di backup del database (pesanti, non versionati)
+sql/backup/*.sql
