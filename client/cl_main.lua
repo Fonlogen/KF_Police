@@ -1,136 +1,172 @@
 ESX = exports['es_extended']:getSharedObject()
 
 opened = false
+CurrentData = {}
 
-local CurrentData = {}
+local function notify(message, nType)
+    ESX.ShowNotification(message, nType or 'info', Config.NotificationsDuration)
+end
 
-RegisterCommand('openmdt', function()
-  OpenMDT()
-end)
+local function getPlayerJobName()
+    local player = ESX.GetPlayerData()
+    return player and player.job and player.job.name or nil
+end
 
-RegisterNUICallback('getClientData', function(data, cb)
-	RequestDataUpdate()
-end)
+function CanOpenMDT()
+    if not ESX.IsPlayerLoaded() then
+        return false
+    end
+
+    return Config.AllowedJobs[getPlayerJobName()] == true
+end
+
+function BuildPlayerNuiData(profile)
+    local player = ESX.GetPlayerData() or {}
+    local job = player.job or {}
+
+    return {
+        firstName = (profile and profile.firstName) or player.firstName or '',
+        lastName = (profile and profile.lastName) or player.lastName or '',
+        grade = (profile and profile.grade) or job.grade_label or '',
+        job = (profile and profile.job) or job.name or '',
+        job_label = (profile and profile.job_label) or job.label or '',
+        citizenId = profile and profile.citizenId or player.ssn or player.identifier,
+        image = (profile and profile.image) or Config.DefaultImage,
+        identifier = player.identifier,
+    }
+end
 
 function RequestDataUpdate()
-	-- Wait(500)
-	local result = lib.callback.await('KF_Police:Server:GetData', false)
-	for k, v in pairs(result) do
-		CurrentData[k] = v
-	end
-	
-	UpdateStartNuiData()
+    local result = lib.callback.await('KF_Police:Server:GetData', false) or {}
+    CurrentData = result
+    UpdateStartNuiData()
+    return result
 end
 
-function UpdateStartNuiData(data)
-	UpdateNuiPlayerData()
-	UpdateNuiConfigData()
-	UpdateNuiTheme()
-	UpdateNuiData()
+function UpdateStartNuiData()
+    UpdateNuiPlayerData()
+    UpdateNuiConfigData()
+    UpdateNuiTheme()
+    UpdateNuiEnabledPages()
+    UpdateNuiData()
 end
-
-RegisterNUICallback('getEnabledPages', function(data, cb)
-	Wait(500)
-	UpdateNuiEnabledPages()
-end)
 
 function UpdateNuiEnabledPages()
-	SendNUIMessage({
-		action = "setEnabledPages",
-		data = Config.EnabledPages
-	})
+    SendNUIMessage({
+        action = 'setEnabledPages',
+        data = Config.EnabledPages
+    })
 end
 
 function UpdateNuiData()
-	SendNUIMessage({
-		action = "setData",
-		data = CurrentData
-	})
+    SendNUIMessage({
+        action = 'setData',
+        data = CurrentData
+    })
 end
 
 function UpdateNuiPlayerData()
-	print('Updating player data')
-	local player = ESX.GetPlayerData()
-
-	SendNUIMessage({
-		action = "setPlayerData",
-		data = player
-	})
+    local profile = lib.callback.await('KF_Police:Server:GetPlayerProfile', false) or {}
+    SendNUIMessage({
+        action = 'setPlayerData',
+        data = BuildPlayerNuiData(profile)
+    })
 end
 
 function UpdateNuiConfigData()
-	local config = ESX.GetConfig()
-
-	SendNUIMessage({
-		action = "setConfig",
-		data = Config
-	})
+    SendNUIMessage({
+        action = 'setConfig',
+        data = {
+            window = Config.window,
+            borderImage = Config.borderImage,
+            Debug = Config.Debug,
+            EnabledPages = Config.EnabledPages,
+            Locale = Config.Locale,
+            DefaultTown = Config.DefaultTown,
+            DefaultImage = Config.DefaultImage,
+            Radio = {
+                Enabled = Config.Radio and Config.Radio.Enabled,
+                Channels = (GetAvailableRadioChannels and GetAvailableRadioChannels()) or {},
+            },
+        }
+    })
 end
 
 function UpdateNuiTheme()
-	if Config.AllowedJobs[ESX.GetPlayerData().job.name] then
-		local theme = ESX.GetPlayerData().job.name
-
-		SendNUIMessage({
-			action = "setTheme",
-			data = theme
-		})
-	end
+    local jobName = getPlayerJobName()
+    if Config.AllowedJobs[jobName] then
+        SendNUIMessage({
+            action = 'setTheme',
+            data = jobName
+        })
+    end
 end
 
-RegisterNetEvent('esx:setJob')
-AddEventHandler('esx:setJob', function(job)
-	print('Changed job to ' .. job.name)
-	if Config.AllowedJobs[job.name] then
-		UpdateNuiPlayerData()
-		UpdateNuiTheme()
-	end
-end)
+function CloseMDT()
+    if not opened then
+        SetNuiFocus(false, false)
+        return
+    end
+
+    SendNUIMessage({
+        action = 'open',
+        data = {
+            visible = false
+        }
+    })
+
+    opened = false
+    SetNuiFocus(false, false)
+end
 
 function OpenMDT()
-	if not ESX.IsPlayerLoaded() then
-		return
-	end
+    if not ESX.IsPlayerLoaded() then
+        return
+    end
 
-	if not Config.AllowedJobs[ESX.GetPlayerData().job.name] then
-		return ESX.ShowNotification(Locales[Config.Locale].not_allowed_job, "error", Config.NotificationsDuration)
-	end
+    if not CanOpenMDT() then
+        return notify(Locale('not_allowed_job'), 'error')
+    end
 
-	print('Opening MDT')
+    if opened then
+        return CloseMDT()
+    end
 
-	SendNUIMessage({
-		action = "open",
-		data = {
-			visible = true
-		}
-	})
+    opened = true
+    SetNuiFocus(true, true)
 
-	opened = true
+    SendNUIMessage({
+        action = 'open',
+        data = {
+            visible = true
+        }
+    })
 
-	SetNuiFocus(true, true)
+    CreateThread(function()
+        RequestDataUpdate()
+    end)
 end
 
-RegisterNUICallback('close', function()
-	SendNUIMessage({
-		action = "open",
-		data = {
-			visible = false
-		}
-	})
+RegisterCommand(Config.OpenCommand or 'openmdt', function()
+    OpenMDT()
+end, false)
 
-	opened = false
+if Config.OpenKey and Config.OpenKey ~= '' then
+    RegisterKeyMapping(Config.OpenCommand or 'openmdt', 'Apri MDT Polizia', 'keyboard', Config.OpenKey)
+end
 
-	SetNuiFocus(false, false)
+RegisterNetEvent('esx:setJob', function(job)
+    if opened and not Config.AllowedJobs[job.name] then
+        CloseMDT()
+        return
+    end
+
+    if Config.AllowedJobs[job.name] then
+        UpdateNuiPlayerData()
+        UpdateNuiTheme()
+    end
 end)
 
-RegisterNUICallback('createReport', function(data)
-	local report = {
-		title = data.title,
-		description = data.description,
-		tags = data.tags,
-		involved = data.involved,
-		involved_vehicles = data.involved_vehicles,
-	}
-
-	TriggerServerEvent('KF_Police:Server:CreateReport', report)
+RegisterNetEvent('KF_Police:Client:OpenMDT', function()
+    OpenMDT()
 end)

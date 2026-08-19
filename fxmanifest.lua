@@ -28,3 +28,9 @@ files {
   'web/build/index.html',
   'web/build/assets/**/*'
 }
+
+dependencies {
+  'es_extended',
+  'oxmysql',
+  'ox_lib',
+}

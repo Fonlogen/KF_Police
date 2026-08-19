@@ -6,13 +6,12 @@ import { MDTContext } from '../App';
 import { Tooltip } from 'react-tooltip';
 
 import { debugData } from "../../utils/debugData";
+import { getById, toRecordMap } from '../../utils/utils';
 
 import {
-  faLocationDot,
   faTimes,
   faPlus,
   faSearch,
-  faAdd,
   faCheck,
 } from '@fortawesome/free-solid-svg-icons';
 import { fetchNui } from '../../utils/fetchNui';
@@ -50,35 +49,44 @@ function CreateReport() {
     setShowAddTagDialog(false);
   };
 
-  const handleCreateReport = () => {
+  const handleCreateReport = async () => {
+    const payload = {
+      ...(reportData || {}),
+      officer: `${playerData?.firstName || ''} ${playerData?.lastName || ''}`.trim(),
+      title: reportData?.title || '',
+      description: reportData?.description || '',
+      tags: reportData?.tags || [],
+      involved: reportData?.involved || [],
+      involved_vehicles: reportData?.involved_vehicles || [],
+    };
 
-    reportData.officer = playerData?.firstName + ' ' + playerData?.lastName;
-    reportData.id = Date.now();
-    reportData.location = 'Unknown';
-    // Date must be in format AAAA-MM-DD
-    reportData.date = new Date().toISOString().split('T')[0];
+    if (!payload.title) {
+      return;
+    }
 
     if (config.Debug) {
-      console.log('Creating report:', reportData);
       debugData([
         {
           action: 'setData',
           data: {
             ...data,
             reports: {
-              ...data.reports,
-              [Date.now()]: {
-                ...reportData,
-              },
+              ...toRecordMap(data?.reports),
+              [Date.now()]: payload,
             }
           },
         }
-      ])
-      alert('Debug Report creato con successo!');
+      ]);
       setActiveComponent(null);
-    } else {
-      fetchNui('createReport', reportData);
+      return;
     }
+
+    await fetchNui('createReport', payload);
+    const { default: Reports } = await import('./Reports');
+    setActiveComponent({
+      component: Reports,
+      props: { theme },
+    });
   };
 
   return (
@@ -119,10 +127,10 @@ function CreateReport() {
             <div className='text-lg px-2 py-1 flex-1 flex bg-[#222222] gap-2 text-white rounded-lg h-full overflow-y-auto flex-row flex-wrap'>
               {reportData?.involved &&
                 reportData?.involved.map((involved: any, index: number) => {
-                  const citizen = data?.citizens[involved];
+                  const citizen = getById(data?.citizens, involved);
                   return (
                     <div key={index} className='text-[12px] text-white flex w-fit h-fit flex-row gap-2 items-center gap-1 bg-blue-600 px-1 rounded-md cursor-pointer hover:bg-blue-700'>
-                      <span><b>{citizen.firstname} {citizen.lastname}</b> | {involved}</span>
+                      <span><b>{citizen?.firstname || 'Sconosciuto'} {citizen?.lastname || ''}</b> | {involved}</span>
                       <span className='hover:text-red-500 cursor-pointer hover:bg-blue-800 px-2 rounded-md text-md'
                         onClick={() => {
                           // Remove citizen from involved
@@ -162,7 +170,7 @@ function CreateReport() {
               <div className='text-sm px-1 py-1 h-full bg-[#222222] text-white rounded-lg h-full flex flex-row flex-1 overflow-x-auto gap-1'>
                 { reportData?.tags &&
                   reportData?.tags.map((tag: any, index: number) => {
-                    const tagData = data?.tags[tag];
+                    const tagData = getById(data?.tags, tag);
                     return (
                       <div key={index} className='flex flex-row gap-2 items-center bg-blue-600 px-1 rounded-md cursor-pointer hover:bg-blue-700'
                       style={{ backgroundColor: tagData?.color || '#000000' }}
@@ -251,20 +259,21 @@ function AddInvolvedPeople({ onAdd, onClose, alreadyInvolved }: AddInvolvedPeopl
         <div className='flex flex-row gap-3 items-center justify-between flex-1 overflow-hidden'>
           <div className='add_involved-citizen-list w-full h-full gap-2 flex flex-col bg-[#171717] rounded-lg overflow-y-auto'>
             { data?.citizens &&
-              Object.keys(data?.citizens)
+              Object.keys(toRecordMap(data?.citizens))
               .filter((citizen: any) => {
-                const citizenData = data?.citizens[citizen];
+                const citizenData = getById(data?.citizens, citizen);
                 const searchLower = involvedCitizenSearch.toLowerCase();
                 return (
-                  !alreadyInvolved.includes(citizenData.citizenId) && // Exclude already involved citizens
+                  citizenData &&
+                  !alreadyInvolved.includes(citizenData.citizenId) &&
                   (!involvedCitizenSearch ||
-                  citizenData?.citizenId.toLowerCase().includes(searchLower) ||
-                  citizenData?.firstname.toLowerCase().includes(searchLower) ||
-                  citizenData?.lastname.toLowerCase().includes(searchLower))
+                  String(citizenData?.citizenId || '').toLowerCase().includes(searchLower) ||
+                  String(citizenData?.firstname || '').toLowerCase().includes(searchLower) ||
+                  String(citizenData?.lastname || '').toLowerCase().includes(searchLower))
                 );
               })
               .map((citizen: any, index: number) => {
-                const citizenData = data?.citizens[citizen];
+                const citizenData = getById(data?.citizens, citizen);
                 return (
                 <div key={index} className='flex flex-row gap-2 items-center px-2 py-1 cursor-pointer hover:bg-[#191919] rounded-lg' onClick={() => onAdd(citizenData)}>
                   <img src={citizenData?.image} className='w-[30px] h-[30px] rounded-full object-fill' />
@@ -330,19 +339,20 @@ function AddReportTag({ onAdd, onClose, alreadyAddedTags = [] }: AddReportTagPro
         <div className='flex flex-row gap-3 items-center justify-between flex-1 overflow-hidden'>
           <div className='add_tag-list w-full h-full gap-2 flex flex-col bg-[#171717] rounded-lg overflow-y-auto'>
             { data?.tags &&
-              Object.keys(data?.tags)
+              Object.keys(toRecordMap(data?.tags))
               .filter((tag: any) => {
-                const tagData = data?.tags[tag];
+                const tagData = getById(data?.tags, tag);
                 const searchLower = tagSearch.toLowerCase();
                 return (
-                  !alreadyAddedTags.includes(tagData.id) && // Exclude already added tags
+                  tagData &&
+                  !alreadyAddedTags.includes(tagData.id) &&
                   (!tagSearch ||
-                  tagData?.id.toLowerCase().includes(searchLower) ||
-                  tagData?.label.toLowerCase().includes(searchLower))
+                  String(tagData?.id || '').toLowerCase().includes(searchLower) ||
+                  String(tagData?.label || '').toLowerCase().includes(searchLower))
                 );
               })
               .map((tag: any, index: number) => {
-                const tagData = data?.tags[tag];
+                const tagData = getById(data?.tags, tag);
                 return (
                 <div key={index} className='flex flex-row gap-2 items-center px-2 py-1 cursor-pointer hover:bg-[#191919] rounded-lg' onClick={() => onAdd(tagData)}>
                   <div

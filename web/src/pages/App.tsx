@@ -20,8 +20,9 @@ import {
 import { useNuiEvent } from "../hooks/useNuiEvent";
 import DebugMenu from "./components/DebugMenu";
 import CitizenView from "./sections/CitizenView";
+import VehicleView from "./sections/VehicleView";
 import { executeDebugData } from "../utils/debugDataList";
-import {Dialog, InputDialog} from "./components/Dialog";
+import { toRecordMap } from "../utils/utils";
 
 
 // Debug Data
@@ -89,15 +90,18 @@ const App = (): JSX.Element => {
     }
   });
   useNuiEvent<any>('setData', (newData) => {
-    console.log('Curr data', JSON.stringify(data));
-    console.log('Setting data', JSON.stringify(newData));
-    if (newData) {
-      if (data) {
-        setData({ ...data, ...newData });
-      } else {
-        setData(newData);
-      }
-    }
+    if (!newData) return;
+    setData((prev: any) => ({
+      ...(prev || {}),
+      ...newData,
+      citizens: toRecordMap(newData.citizens != null ? newData.citizens : prev?.citizens),
+      vehicles: toRecordMap(newData.vehicles ?? prev?.vehicles),
+      tags: toRecordMap(newData.tags ?? prev?.tags),
+      reports: toRecordMap(newData.reports ?? prev?.reports),
+      penalcode: toRecordMap(newData.penalcode ?? newData.penalCode ?? prev?.penalcode),
+      penalCode: toRecordMap(newData.penalcode ?? newData.penalCode ?? prev?.penalCode),
+      wantedList: toRecordMap(newData.wantedList ?? prev?.wantedList),
+    }));
   });
   useNuiEvent<any>('setPlayerData', (data) => {
     console.log('Setting player data', data);
@@ -187,10 +191,7 @@ const App = (): JSX.Element => {
               setSelectedData: setSelectedData, 
               dialogData: dialogData,
               setDialogData: setDialogData,
-              header: {
-                icon: faHome,
-                text: 'Benvenuto',
-              },
+              header,
               setHeader: setHeader,
             }
           }>
@@ -253,12 +254,12 @@ const App = (): JSX.Element => {
                   <CitizenView citizen={undefined} theme={""} />
                 )}
                 { activeComponent && activeComponent === 'vehicle_data' && (
-                  <h1>Vehicle data</h1>
+                  <VehicleView vehicle={selectedData} theme={theme} />
                 )}
                 {activeComponent && activeComponent !== 'citizen_data' && activeComponent !== 'vehicle_data' && React.createElement(activeComponent.component, { theme, setActiveComponent, searchQuery, ...(activeComponent.props || {}) })}
                 {!activeComponent && (
                   <div className='flex flex-col gap-3 text-xl'>
-                    <h1>Benvenuto {playerData?.firstName || 'Duce'},</h1>
+                    <h1>Benvenuto {playerData?.firstName || 'Agente'},</h1>
                     <p>Clicca su una delle opzioni a sinistra per iniziare.</p>
                   </div>
                 )}

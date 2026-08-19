@@ -120,9 +120,13 @@ function DataTable({ header, emptyMessage, rows, columns, style, size }: DataTab
                 ))}
               </div>
             ))}
-          {!rows || rows.length <= 0 && (
+          {(!rows || rows.length <= 0) && (
             <div className={`flex-table-row ${style?.row || null}`}>
-              <div className={`flex-table-cell ${style?.cell || null}`}>{emptyMessage}</div>
+              {Object.keys(columns).map((column: string, colIndex: number) => (
+                <div key={colIndex} className={`flex-table-cell ${style?.cell || null}`} style={{ width: size?.[column] || 'auto' }}>
+                  {colIndex === 0 ? (emptyMessage || 'Nessun dato') : ''}
+                </div>
+              ))}
             </div>
           )}
         </div>

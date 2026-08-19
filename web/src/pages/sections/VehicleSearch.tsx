@@ -3,11 +3,11 @@ import React, { useContext, useEffect } from 'react'
 import { MDTContext } from '../App';
 import PuffLoader from 'react-spinners/PuffLoader';
 import { 
-  faCircleInfo, 
   faUser,
-  faEye
+  faEye,
 } from '@fortawesome/free-solid-svg-icons';
 import DataTable from '../components/DataTable';
+import { getById, toRecordMap } from '../../utils/utils';
 
 function VehicleSearch() {
   
@@ -61,56 +61,54 @@ function VehicleSearch() {
                   owner: 'Proprietario',
                   actions: 'Azioni',
                 }}
-                rows={Object.keys(data?.vehicles)
+                rows={Object.keys(toRecordMap(data?.vehicles))
                   .filter((vehicle: any) => {
-                    let veh = data?.vehicles[vehicle];
-                    // if (!search) console.log('No search query', search);
-                    if (search === '' || !search) return vehicle;
-                    else if (veh?.model?.toLowerCase().includes(search)) return vehicle;
-                    else if (veh?.plate?.toLowerCase().includes(search)) return vehicle;
-                    else if (veh?.owner?.toLowerCase().includes(search)) return vehicle;
+                    let veh = getById(data?.vehicles, vehicle);
+                    const query = (search || '').toLowerCase();
+                    if (!query) return true;
+                    return (
+                      String(veh?.model || '').toLowerCase().includes(query) ||
+                      String(veh?.plate || '').toLowerCase().includes(query) ||
+                      String(veh?.owner || '').toLowerCase().includes(query)
+                    );
                   })
                   .map((vehicle: any) => {
-                    let citizen = data?.citizens[data?.vehicles[vehicle]?.owner];
-                    let veh = data?.vehicles[vehicle];
+                    let veh = getById(data?.vehicles, vehicle);
+                    let citizen = getById(data?.citizens, veh?.owner);
 
                     if (!citizen) {
                       citizen = {
                         disabled: true,
                         firstname: 'Sconosciuto',
-                        lastname: 'Sconosciuto',
+                        lastname: '',
                       }
                     }
 
                     return {
-                      model: veh.model,
-                      plate: veh.plate,
-                      owner: citizen.firstname + ' ' + citizen.lastname,
+                      model: veh?.label || veh?.model,
+                      plate: veh?.plate,
+                      owner: `${citizen.firstname || ''} ${citizen.lastname || ''}`.trim(),
                       actions: [
                         {
                           type: 'button',
-                          // label: 'Visualizza',
                           icon: faEye,
                           tooltip: {
                             place: 'bottom',
-                            text: 'Informazioni veicolo',
+                            text: veh?.stolen ? 'Rimuovi rubato' : 'Segna come rubato',
                             variant: 'info',
                           },
                           function: () => {
-                            if (citizen.disabled) return;
                             setSelectedData(veh);
                             setActiveComponent('vehicle_data');
                           },
-                          style: 'bg-green-500',
+                          style: veh?.stolen ? 'bg-orange-600' : 'bg-green-600',
                         },
                         {
                           type: 'button',
-                          // label: 'Azioni',
                           icon: faUser,
                           tooltip: {
                             place: 'bottom',
                             text: 'Informazioni proprietario',
-                            // variant: 'info',
                           },
                           function: () => {
                             if (citizen.disabled) return;

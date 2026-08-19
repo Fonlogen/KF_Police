@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>KF_Police — Design approvato "Case File v4"</title>
+<style>
+  html { background:#17140f; }
+  body { margin:0; padding:28px 32px 48px; background:#17140f; color:#e6e0d4;
+         font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif; }
+  .banner { border:1px solid #3a3025; border-left:3px solid #7bb661; border-radius:10px;
+            padding:12px 16px; margin-bottom:22px; font-size:13px; line-height:1.6; color:#c9c0b0; }
+  .banner b { color:#f0e9dc; }
+  .banner code { background:#221c15; padding:2px 5px; border-radius:3px; font-size:12px; }
+  .subtitle { color:#a8a094; font-size:13.5px; line-height:1.6; max-width:110ch; }
+  .subtitle code { background:#221c15; padding:2px 5px; border-radius:3px; font-size:12px; }
+  .label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#8a8175; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <b>Design approvato dal committente il 2026-08-19.</b> Questo file è la specifica visiva di riferimento
+  per il rework del MDT: riproduce la schermata <i>Anagrafica cittadini</i> a <b>1280 × 910 con base 16 px</b>,
+  pixel-accurata. Le misure in <code>rem</code> della sezione 3 del piano
+  (<code>.claude/plans/2026-08-19-kf-police-mdt-rework.md</code>) sono prese da qui.
+  In caso di dubbio su una spaziatura, un colore o una dimensione: <b>misurare su questo file</b>.
+</div>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+  .vc { font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif; }
+  .vc h2 { margin:0 0 6px; }
+  .vc-fix { display:grid; gap:10px; margin:16px 0 20px; }
+  @media (min-width:900px){ .vc-fix { grid-template-columns:repeat(3,1fr); } }
+  .fx { border:1px solid rgba(128,128,128,.28); border-left:3px solid #7bb661; border-radius:10px; padding:12px 14px; }
+  .fx b { display:block; font-size:12.5px; margin-bottom:5px; }
+  .fx p { margin:0; font-size:12px; line-height:1.5; opacity:.72; }
+  .fx code { font-size:11px; background:rgba(128,128,128,.18); padding:1px 4px; border-radius:3px; }
+  .vc-scroll { overflow-x:auto; padding:4px 0 8px; }
+  .vc-note { font-size:11.5px; opacity:.55; margin:6px 0 0; }
+  .vc-pick { border:2px solid rgba(128,128,128,.26); border-radius:14px; padding:14px 16px; cursor:pointer;
+             transition:border-color .15s; margin-top:18px; background:rgba(128,128,128,.05); }
+  .vc-pick:hover { border-color:rgba(168,50,42,.55); }
+  .vc-pick.selected { border-color:#a8322a; box-shadow:0 0 0 4px rgba(168,50,42,.16); }
+  .vc-pick b { font-size:14px; }
+  .vc-pick p { margin:5px 0 0; font-size:12.5px; opacity:.7; }
+
+  /* =====================================================================
+     CASE FILE v4 — correzioni applicate. Tutto derivato da --fs.
+     ===================================================================== */
+  .cf { --fs:16px; font-size:var(--fs); width:1280px; height:910px; flex-shrink:0;
+        font-family:'Inter',sans-serif; background:#100E0B; color:#E8E1D4;
+        border-radius:.75rem; overflow:hidden; display:flex; flex-direction:column;
+        box-shadow:0 12px 44px rgba(0,0,0,.55); }
+  .cf * { box-sizing:border-box; }
+  .cf svg { display:block; flex-shrink:0; fill:currentColor; }
+  .cf .sp { flex:1; }
+  .cf .num { font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+
+  /* status bar */
+  .cf .sbar { display:flex; align-items:center; gap:1.15rem; padding:0 1rem; height:2.25rem; flex-shrink:0;
+              background:#0A0908; border-bottom:1px solid #241E17; color:#8A8175; font-size:.8rem; }
+  .cf .sbar .g { display:flex; align-items:center; gap:.4rem; }
+  .cf .sbar b { color:#C9C0B0; font-weight:600; letter-spacing:.06em; }
+  .cf .sbar svg { width:.95rem; height:.95rem; }
+  .cf .batt { width:1.75rem; height:.85rem; border:1px solid #5C5449; border-radius:.15rem; padding:2px; }
+  .cf .batt i { display:block; height:100%; width:78%; background:#C9A227; border-radius:1px; }
+  .cf .duty { display:flex; align-items:center; gap:.4rem; color:#7BB661; font-weight:600; font-size:.78rem; }
+  .cf .duty .dot { width:.45rem; height:.45rem; border-radius:9999px; background:#7BB661; }
+
+  .cf .main { flex:1; display:flex; min-height:0; }
+
+  /* ---- SIDEBAR 13rem, righe 3rem  (CORREZIONE 1) ---- */
+  .cf .side { width:13rem; background:#0A0908; border-right:1px solid #241E17; display:flex;
+              flex-direction:column; padding:.75rem .5rem; gap:.2rem; flex-shrink:0; }
+  .cf .brand { display:flex; align-items:center; gap:.6rem; padding:.15rem .4rem .85rem; }
+  .cf .crest { width:2.5rem; height:2.5rem; border-radius:.5rem; background:#A8322A; color:#fff;
+               display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .cf .crest svg { width:1.3rem; height:1.3rem; }
+  .cf .brand .txt b { display:block; font-size:.95rem; font-weight:700; line-height:1.15; }
+  .cf .brand .txt i { font-style:normal; font-size:.7rem; color:#8A8175; letter-spacing:.08em;
+                      text-transform:uppercase; font-weight:500; }
+  .cf .grp { font-size:.7rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+             color:#6B6459; padding:.7rem .6rem .35rem; }
+  .cf .nav { display:flex; align-items:center; gap:.7rem; height:3rem; padding:0 .7rem;
+             border-radius:.5rem; color:#9A9084; font-size:.92rem; font-weight:500; }
+  .cf .nav svg { width:1.25rem; height:1.25rem; }
+  .cf .nav:hover { background:#161209; background:#171310; color:#D6CFC2; }
+  .cf .nav.on { background:#1D1913; color:#F0E9DC; font-weight:600; box-shadow:inset .2rem 0 0 #A8322A; }
+  .cf .nav .bdg { margin-left:auto; background:#A8322A; color:#fff; font-size:.7rem; font-weight:700;
+                  border-radius:9999px; min-width:1.3rem; height:1.3rem; display:flex;
+                  align-items:center; justify-content:center; padding:0 .35rem; }
+  .cf .nav .bdg.warn { background:#C9A227; color:#100E0B; }
+  .cf .me { display:flex; align-items:center; gap:.6rem; padding:.6rem .5rem; margin-top:.4rem;
+            border-top:1px solid #241E17; }
+  .cf .me .face { width:2.1rem; height:2.1rem; border-radius:.4rem; background:#3D342A; flex-shrink:0; }
+  .cf .me b { display:block; font-size:.85rem; font-weight:600; line-height:1.2; }
+  .cf .me i { font-style:normal; font-size:.72rem; color:#8A8175; }
+  .cf .collapse { display:flex; align-items:center; justify-content:center; gap:.45rem; height:2.25rem;
+                  border-radius:.5rem; background:#141110; color:#7D7568; font-size:.75rem; font-weight:600; }
+  .cf .collapse svg { width:.8rem; height:.8rem; }
+
+  .cf .stack { flex:1; display:flex; flex-direction:column; min-height:0; }
+
+  /* linguette */
+  .cf .tabs { display:flex; align-items:flex-end; gap:.2rem; padding:.6rem 1rem 0; flex-shrink:0; }
+  .cf .tab { display:flex; align-items:center; gap:.45rem; height:2.4rem; padding:0 .9rem;
+             border-radius:.5rem .5rem 0 0; background:#191510; color:#8A8175; font-size:.86rem;
+             border:1px solid #262019; border-bottom:none; white-space:nowrap; font-weight:500; }
+  .cf .tab svg { width:.95rem; height:.95rem; }
+  .cf .tab.on { background:#1A1611; color:#F0E9DC; border-color:#3A3025; font-weight:600;
+                box-shadow:inset 0 .18rem 0 #A8322A; height:2.6rem; }
+  .cf .tab .x { color:#6B6459; margin-left:.2rem; }
+
+  /* ---- FOGLIO: intestazione a RIGA SINGOLA (CORREZIONE 2) ---- */
+  .cf .sheet { flex:1; background:#1A1611; border:1px solid #302719; border-radius:0 .5rem .5rem .5rem;
+               margin:0 1rem; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  .cf .fh { display:flex; align-items:center; gap:.8rem; padding:0 1rem; height:3.5rem;
+            border-bottom:1px dashed #3A3025; flex-shrink:0; flex-wrap:nowrap; }
+  .cf .fh .ttl { min-width:0; display:flex; align-items:baseline; gap:.55rem; overflow:hidden; }
+  .cf .fh h3 { margin:0; font-size:1.15rem; font-weight:700; letter-spacing:-.01em; white-space:nowrap;
+               overflow:hidden; text-overflow:ellipsis; }
+  .cf .fh .cnt { font-size:.8rem; color:#8A8175; white-space:nowrap; font-weight:500; }
+  .cf .seg { display:flex; border:1px solid #3A3025; border-radius:.35rem; overflow:hidden;
+             font-size:.8rem; flex-shrink:0; height:2.3rem; }
+  .cf .seg span { display:flex; align-items:center; padding:0 .8rem; color:#8A8175; white-space:nowrap; font-weight:500; }
+  .cf .seg span.on { background:#A8322A; color:#fff; font-weight:600; }
+  .cf .find { display:flex; align-items:center; gap:.5rem; background:#120F0C; border:1px solid #33291F;
+              border-radius:.35rem; height:2.3rem; padding:0 .75rem; width:14rem; flex-shrink:0;
+              color:#8A8175; font-size:.85rem; }
+  .cf .find svg { width:.95rem; height:.95rem; }
+  .cf .iconbtn { width:2.3rem; height:2.3rem; border-radius:.35rem; background:#262019;
+                 border:1px solid #3D3327; color:#C9A227; display:flex; align-items:center;
+                 justify-content:center; flex-shrink:0; }
+  .cf .iconbtn svg { width:.95rem; height:.95rem; }
+
+  /* tabella */
+  .cf .thead, .cf .tr { display:flex; align-items:center; gap:.75rem; padding:0 1rem; }
+  .cf .thead { height:2.5rem; background:#221C15; color:#948A7C; border-bottom:1px solid #3A3025;
+               font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; font-weight:700; flex-shrink:0; }
+  .cf .tbody { flex:1; overflow:hidden; }
+  .cf .tr { height:3.4rem; border-bottom:1px solid #241E17; font-size:.95rem; }
+  .cf .tr:hover { background:#1F1A14; }
+  .cf .cA { width:2.75rem; flex-shrink:0; } .cf .cB { flex:1.15; } .cf .cC { flex:1.4; }
+  .cf .cD { flex:1; } .cf .cE { flex:1.3; } .cf .cF { width:3.5rem; flex-shrink:0; display:flex; justify-content:flex-end; }
+  .cf .face { width:2.25rem; height:2.25rem; background:#3D342A; border-radius:.3rem; flex-shrink:0; }
+  .cf .nm { font-weight:600; }
+  .cf .go { width:2.25rem; height:2.25rem; border-radius:.35rem; background:#262019;
+            border:1px solid #3D3327; color:#D98C6A; display:flex; align-items:center; justify-content:center; }
+  .cf .go svg { width:.85rem; height:.85rem; }
+  .cf .stamp { display:inline-flex; align-items:center; gap:.3rem; font-size:.72rem; font-weight:700;
+               letter-spacing:.09em; padding:.18rem .42rem; color:#E8695C; border:1.5px solid #E8695C;
+               border-radius:.2rem; transform:rotate(-2.5deg); background:rgba(232,105,92,.09); margin-left:.45rem; }
+  .cf .stamp svg { width:.8rem; height:.8rem; }
+
+  /* footer radio */
+  .cf .foot { padding:.65rem 1rem .8rem; flex-shrink:0; }
+  .cf .rd { display:flex; align-items:center; gap:.75rem; background:#0A0908; border:1px solid #262019;
+            border-radius:.5rem; height:3rem; padding:0 .9rem; }
+  .cf .rd > svg { width:1.3rem; height:1.3rem; color:#C9A227; }
+  .cf .rd b { display:block; font-size:.9rem; font-weight:600; line-height:1.25; }
+  .cf .rd i { font-style:normal; font-size:.75rem; color:#C9A227; }
+  .cf .wv { display:flex; gap:.14rem; align-items:flex-end; height:1.15rem; }
+  .cf .wv i { width:.2rem; border-radius:1px; display:block; background:#C9A227; }
+  .cf .ch { display:flex; gap:.3rem; }
+  .cf .ch span { display:flex; align-items:center; height:2rem; padding:0 .7rem; border-radius:.35rem;
+                 background:#191510; border:1px solid #2C251C; color:#8A8175; font-size:.8rem; font-weight:600; }
+  .cf .ch span.on { background:#2A2118; border-color:#C9A227; color:#E8DFC9; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="v-users" viewBox="0 0 640 512"><path d="M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 298.7C0 239.8 47.8 192 106.7 192l42.7 0c15.9 0 31 3.5 44.6 9.7c-1.3 7.2-1.9 14.7-1.9 22.3c0 38.2 16.8 72.5 43.3 96c-.2 0-.4 0-.7 0L21.3 320C9.6 320 0 310.4 0 298.7zM405.3 320c-.2 0-.4 0-.7 0c26.6-23.5 43.3-57.8 43.3-96c0-7.6-.7-15-1.9-22.3c13.6-6.3 28.7-9.7 44.6-9.7l42.7 0C592.2 192 640 239.8 640 298.7c0 11.8-9.6 21.3-21.3 21.3l-213.3 0zM224 224a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zM128 485.3C128 411.7 187.7 352 261.3 352l117.3 0C452.3 352 512 411.7 512 485.3c0 14.7-11.9 26.7-26.7 26.7l-330.7 0c-14.7 0-26.7-11.9-26.7-26.7z"/></symbol>
+<symbol id="v-car" viewBox="0 0 512 512"><path d="M135.2 117.4L109.1 192l293.8 0-26.1-74.6C372.3 104.6 360.2 96 346.6 96L165.4 96c-13.6 0-25.7 8.6-30.2 21.4zM39.6 196.8L74.8 96.3C88.3 57.8 124.6 32 165.4 32l181.2 0c40.8 0 77.1 25.8 90.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2l0 144 0 48c0 17.7-14.3 32-32 32l-32 0c-17.7 0-32-14.3-32-32l0-48L96 400l0 48c0 17.7-14.3 32-32 32l-32 0c-17.7 0-32-14.3-32-32L0 400 0 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></symbol>
+<symbol id="v-file" viewBox="0 0 384 512"><path d="M64 0C28.7 0 0 28.7 0 64L0 448c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-288-128 0c-17.7 0-32-14.3-32-32L224 0 64 0zM256 0l0 128 128 0L256 0zM112 256l160 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-160 0c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64l160 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-160 0c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64l160 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-160 0c-8.8 0-16-7.2-16-16s7.2-16 16-16z"/></symbol>
+<symbol id="v-scale" viewBox="0 0 640 512"><path d="M384 32l128 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L398.4 96c-5.2 25.8-22.9 47.1-46.4 57.3L352 448l160 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-192 0-192 0c-17.7 0-32-14.3-32-32s14.3-32 32-32l160 0 0-294.7c-23.5-10.3-41.2-31.6-46.4-57.3L128 96c-17.7 0-32-14.3-32-32s14.3-32 32-32l128 0c14.6-19.4 37.8-32 64-32s49.4 12.6 64 32zm55.6 288l144.9 0L512 195.8 439.6 320zM512 416c-62.9 0-115.2-34-126-78.9c-2.6-11 1-22.3 6.7-32.1l95.2-163.2c5-8.6 14.2-13.8 24.1-13.8s19.1 5.3 24.1 13.8l95.2 163.2c5.7 9.8 9.3 21.1 6.7 32.1C627.2 382 574.9 416 512 416zM126.8 195.8L54.4 320l144.9 0L126.8 195.8zM.9 337.1c-2.6-11 1-22.3 6.7-32.1l95.2-163.2c5-8.6 14.2-13.8 24.1-13.8s19.1 5.3 24.1 13.8l95.2 163.2c5.7 9.8 9.3 21.1 6.7 32.1C242 382 189.7 416 126.8 416S11.7 382 .9 337.1z"/></symbol>
+<symbol id="v-skull" viewBox="0 0 448 512"><path d="M368 128c0 44.4-25.4 83.5-64 106.4l0 21.6c0 17.7-14.3 32-32 32l-96 0c-17.7 0-32-14.3-32-32l0-21.6c-38.6-23-64-62.1-64-106.4C80 57.3 144.5 0 224 0s144 57.3 144 128zM168 176a32 32 0 1 0 0-64 32 32 0 1 0 0 64zm144-32a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM3.4 273.7c7.9-15.8 27.1-22.2 42.9-14.3L224 348.2l177.7-88.8c15.8-7.9 35-1.5 42.9 14.3s1.5 35-14.3 42.9L295.6 384l134.8 67.4c15.8 7.9 22.2 27.1 14.3 42.9s-27.1 22.2-42.9 14.3L224 419.8 46.3 508.6c-15.8 7.9-35 1.5-42.9-14.3s-1.5-35 14.3-42.9L152.4 384 17.7 316.6C1.9 308.7-4.5 289.5 3.4 273.7z"/></symbol>
+<symbol id="v-radio" viewBox="0 0 384 512"><path d="M112 24c0-13.3-10.7-24-24-24S64 10.7 64 24l0 72L48 96C21.5 96 0 117.5 0 144L0 300.1c0 12.7 5.1 24.9 14.1 33.9l3.9 3.9c9 9 14.1 21.2 14.1 33.9L32 464c0 26.5 21.5 48 48 48l224 0c26.5 0 48-21.5 48-48l0-92.1c0-12.7 5.1-24.9 14.1-33.9l3.9-3.9c9-9 14.1-21.2 14.1-33.9L384 144c0-26.5-21.5-48-48-48l-16 0c0-17.7-14.3-32-32-32s-32 14.3-32 32l-32 0c0-17.7-14.3-32-32-32s-32 14.3-32 32l-48 0 0-72zm0 136l160 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-160 0c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64l160 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-160 0c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64l160 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-160 0c-8.8 0-16-7.2-16-16s7.2-16 16-16z"/></symbol>
+<symbol id="v-search" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></symbol>
+<symbol id="v-signal" viewBox="0 0 640 512"><path d="M576 0c17.7 0 32 14.3 32 32l0 448c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-448c0-17.7 14.3-32 32-32zM448 96c17.7 0 32 14.3 32 32l0 352c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-352c0-17.7 14.3-32 32-32zM352 224l0 256c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32s32 14.3 32 32zM192 288c17.7 0 32 14.3 32 32l0 160c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-160c0-17.7 14.3-32 32-32zM96 416l0 64c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32s32 14.3 32 32z"/></symbol>
+<symbol id="v-clock" viewBox="0 0 512 512"><path d="M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zM232 120l0 136c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2 280 120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"/></symbol>
+<symbol id="v-plus" viewBox="0 0 448 512"><path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"/></symbol>
+<symbol id="v-shield" viewBox="0 0 640 512"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512l388.6 0c1.8 0 3.5-.2 5.3-.5c-76.3-55.1-99.8-141-103.1-200.2c-16.1-4.8-33.1-7.3-50.7-7.3l-91.4 0zm308.8-78.3l-120 48C358 277.4 352 286.2 352 296c0 63.3 25.9 168.8 134.8 214.2c5.9 2.5 12.6 2.5 18.5 0C614.1 464.8 640 359.3 640 296c0-9.8-6-18.6-15.1-22.3l-120-48c-5.7-2.3-12.1-2.3-17.8 0zM591.4 312c-3.9 50.7-27.2 116.7-95.4 149.7l0-187.8L591.4 312z"/></symbol>
+<symbol id="v-cuffs" viewBox="0 0 640 512"><path d="M240 32a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM192 48a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm-32 80c17.7 0 32 14.3 32 32l8 0c13.3 0 24 10.7 24 24l0 16c0 1.7-.2 3.4-.5 5.1C280.3 229.6 320 286.2 320 352c0 88.4-71.6 160-160 160S0 440.4 0 352c0-65.8 39.7-122.4 96.5-146.9c-.4-1.6-.5-3.3-.5-5.1l0-16c0-13.3 10.7-24 24-24l8 0c0-17.7 14.3-32 32-32zm0 320a96 96 0 1 0 0-192 96 96 0 1 0 0 192zm192-96c0-25.9-5.1-50.5-14.4-73.1c16.9-32.9 44.8-59.1 78.9-73.9c-.4-1.6-.5-3.3-.5-5.1l0-16c0-13.3 10.7-24 24-24l8 0c0-17.7 14.3-32 32-32s32 14.3 32 32l8 0c13.3 0 24 10.7 24 24l0 16c0 1.7-.2 3.4-.5 5.1C600.3 229.6 640 286.2 640 352c0 88.4-71.6 160-160 160c-62 0-115.8-35.3-142.4-86.9c9.3-22.5 14.4-47.2 14.4-73.1zm224 0a96 96 0 1 0 -192 0 96 96 0 1 0 192 0zM368 0a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm80 48a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></symbol>
+<symbol id="v-id" viewBox="0 0 576 512"><path d="M0 96l576 0c0-35.3-28.7-64-64-64L64 32C28.7 32 0 60.7 0 96zm0 32L0 416c0 35.3 28.7 64 64 64l448 0c35.3 0 64-28.7 64-64l0-288L0 128zM64 405.3c0-29.5 23.9-53.3 53.3-53.3l117.3 0c29.5 0 53.3 23.9 53.3 53.3c0 5.9-4.8 10.7-10.7 10.7L74.7 416c-5.9 0-10.7-4.8-10.7-10.7zM176 192a64 64 0 1 1 0 128 64 64 0 1 1 0-128zm176 16c0-8.8 7.2-16 16-16l128 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-128 0c-8.8 0-16-7.2-16-16zm0 64c0-8.8 7.2-16 16-16l128 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-128 0c-8.8 0-16-7.2-16-16zm0 64c0-8.8 7.2-16 16-16l128 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-128 0c-8.8 0-16-7.2-16-16z"/></symbol>
+<symbol id="v-pin" viewBox="0 0 384 512"><path d="M215.7 499.2C267 435 384 279.4 384 192C384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2c12.3 15.3 35.1 15.3 47.4 0zM192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z"/></symbol>
+<symbol id="v-chev" viewBox="0 0 320 512"><path d="M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"/></symbol>
+<symbol id="v-chevL" viewBox="0 0 320 512"><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l192 192c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256 246.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-192 192z"/></symbol>
+<symbol id="v-x" viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></symbol>
+</defs></svg>
+
+<div class="vc">
+  <h2>Case File v4 — le tre correzioni applicate, a dimensione reale</h2>
+  <p class="subtitle">
+    Scala <b>Comodo</b>: 1280 × 910, base 16 px. Se il tuo monitor è 1080p, questi sono esattamente i pixel
+    che vedrai in gioco. Il piano completo è già salvato in
+    <code>.claude/plans/2026-08-19-kf-police-mdt-rework.md</code>.
+  </p>
+
+  <div class="vc-fix">
+    <div class="fx"><b>1 · Barra laterale più grande</b>
+      <p>Da rail icon-only da 70 px a <b>sidebar da 13 rem</b> con icona + etichetta. Righe alte
+        <code>3rem</code> (48 px), icone <code>1.25rem</code>, badge leggibili. In fondo la scheda agente e
+        il pulsante per collassarla a icone quando serve spazio.</p></div>
+    <div class="fx"><b>2 · Ricerca su una riga sola</b>
+      <p>L'intestazione ora è <code>flex-nowrap</code> con altezza fissa <code>3.5rem</code>: titolo
+        troncato con ellissi, filtro segmentato e campo ricerca ridotto a <b>14 rem</b>. Il badge
+        <code>CTRL K</code> è uscito dal campo. <b>Non va più a capo</b> a nessuna larghezza.</p></div>
+    <div class="fx"><b>3 · Un solo font moderno</b>
+      <p>Georgia e lo stack di sistema eliminati: <b>Inter</b> per tutto (400/500/600/700).
+        <b>JetBrains Mono</b> solo su SSN, targhe e orari, dove le cifre a larghezza fissa evitano che le
+        colonne ballino. È un token: si allinea a Inter cambiando una riga.</p></div>
+  </div>
+
+  <div class="vc-scroll">
+    <div class="cf">
+      <div class="sbar">
+        <span class="g"><svg><use href="#v-shield"/></svg> <b>1-ADAM-12</b></span>
+        <span class="g"><svg><use href="#v-pin"/></svg> Vespucci Blvd</span>
+        <span class="g num">SSN 811-91-8780</span>
+        <span class="sp"></span>
+        <span class="duty"><span class="dot"></span> IN SERVIZIO</span>
+        <span class="g"><svg><use href="#v-signal"/></svg></span>
+        <span class="g num"><svg><use href="#v-clock"/></svg> 21:47</span>
+        <span class="batt"><i></i></span>
+      </div>
+
+      <div class="main">
+        <div class="side">
+          <div class="brand">
+            <div class="crest"><svg><use href="#v-shield"/></svg></div>
+            <div class="txt"><b>Los Santos</b><i>Police Dept.</i></div>
+          </div>
+
+          <div class="grp">Archivio</div>
+          <div class="nav on"><svg><use href="#v-users"/></svg> Anagrafica</div>
+          <div class="nav"><svg><use href="#v-car"/></svg> Veicoli</div>
+          <div class="nav"><svg><use href="#v-file"/></svg> Rapporti <span class="bdg">4</span></div>
+          <div class="nav"><svg><use href="#v-scale"/></svg> Codice Penale</div>
+
+          <div class="grp">Operativo</div>
+          <div class="nav"><svg><use href="#v-skull"/></svg> Ricercati <span class="bdg">1</span></div>
+          <div class="nav"><svg><use href="#v-cuffs"/></svg> Detenuti <span class="bdg warn">2</span></div>
+          <div class="nav"><svg><use href="#v-radio"/></svg> Radio</div>
+          <div class="nav"><svg><use href="#v-shield"/></svg> Servizio</div>
+
+          <span class="sp"></span>
+          <div class="collapse"><svg><use href="#v-chevL"/></svg> Comprimi</div>
+          <div class="me">
+            <span class="face"></span>
+            <div><b>Fonlogen Dev</b><i>Captain · #4</i></div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="tabs">
+            <span class="tab on"><svg><use href="#v-users"/></svg> Anagrafica</span>
+            <span class="tab"><svg><use href="#v-id"/></svg> Fonlogen Dev <span class="x"><svg style="width:.7rem;height:.7rem"><use href="#v-x"/></svg></span></span>
+            <span class="tab"><svg><use href="#v-file"/></svg> Report #14 <span class="x"><svg style="width:.7rem;height:.7rem"><use href="#v-x"/></svg></span></span>
+            <span class="sp"></span>
+            <span class="tab" style="color:#C9A227"><svg><use href="#v-plus"/></svg></span>
+          </div>
+
+          <div class="sheet">
+            <div class="fh">
+              <div class="ttl"><h3>Anagrafica cittadini</h3><span class="cnt num">8 · 1 ricercato</span></div>
+              <span class="sp"></span>
+              <div class="seg"><span class="on">Tutti</span><span>Ricercati</span><span>Detenuti</span></div>
+              <div class="find"><svg><use href="#v-search"/></svg> Nome, cognome o SSN…</div>
+              <div class="iconbtn"><svg><use href="#v-plus"/></svg></div>
+            </div>
+
+            <div class="thead">
+              <span class="cA"></span><span class="cB">Nome</span><span class="cC">Cognome</span>
+              <span class="cD">Cittadinanza</span><span class="cE">Impiego</span><span class="cF">Apri</span>
+            </div>
+            <div class="tbody">
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Fonlogen</span><span class="cC nm">Dev</span><span class="cD">Los Santos</span><span class="cE">LSPD · Captain</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Dado</span><span class="cC nm">Dado</span><span class="cD">Los Santos</span><span class="cE">LSPD · Lieutenant</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Franchito</span><span class="cC nm">Dossarioes <span class="stamp"><svg><use href="#v-skull"/></svg> RICERCATO</span></span><span class="cD">Los Santos</span><span class="cE">Disoccupato</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Lady</span><span class="cC nm">Lilla</span><span class="cD">Los Santos</span><span class="cE">Disoccupato</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">San</span><span class="cC nm">Andreas</span><span class="cD">Los Santos</span><span class="cE">Disoccupato</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Marco</span><span class="cC nm">Bellini</span><span class="cD">Los Santos</span><span class="cE">Meccanico</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Giulia</span><span class="cC nm">Ferraro</span><span class="cD">Los Santos</span><span class="cE">EMS · Paramedico</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+              <div class="tr"><span class="cA"><span class="face"></span></span><span class="cB nm">Rocco</span><span class="cC nm">Santoro</span><span class="cD">Los Santos</span><span class="cE">Disoccupato</span><span class="cF"><span class="go"><svg><use href="#v-chev"/></svg></span></span></div>
+            </div>
+          </div>
+
+          <div class="foot">
+            <div class="rd">
+              <svg><use href="#v-radio"/></svg>
+              <div><b>LSPD Principale</b><i>CH 1 · 4 agenti in ascolto</i></div>
+              <span class="wv"><i style="height:30%"></i><i style="height:65%"></i><i style="height:100%"></i><i style="height:48%"></i><i style="height:80%"></i></span>
+              <span class="sp"></span>
+              <span class="ch"><span class="on">CH1</span><span>CH2</span><span>CH3</span><span>TAC</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="vc-note">Se la finestra del browser è più stretta di 1280 px, scorri dentro il riquadro — non è un difetto del layout.</p>
+
+</div>
+
+</body>
+</html>

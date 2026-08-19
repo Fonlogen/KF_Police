@@ -33,7 +33,9 @@ export async function fetchNui<T = unknown>(
 
   const resp = await fetch(`https://${resourceName}/${eventName}`, options);
 
-  const respFormatted = await resp.json();
-
-  return respFormatted;
+  try {
+    return await resp.json();
+  } catch {
+    return {} as T;
+  }
 }

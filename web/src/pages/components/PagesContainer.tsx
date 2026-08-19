@@ -136,7 +136,3 @@ function PagesContainer({ theme, setActiveComponent }: PagesContainerProps) {
 }
 
 export default PagesContainer
-
-function setHeader(arg0: { icon: JSX.Element; text: string; }) {
-  throw new Error('Function not implemented.');
-}

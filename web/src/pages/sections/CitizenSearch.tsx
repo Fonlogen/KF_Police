@@ -11,7 +11,7 @@ import {
 import Badge from '../components/Badge';
 import DataTable from '../components/DataTable';
 
-import guestImage from '../../../assets/guest.png';
+import { getById, toRecordMap } from '../../utils/utils';
 
 interface CitizenSearchProps {
   theme: string;
@@ -65,40 +65,38 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
           }}
 
           rows={
-            Object.keys(data?.citizens)
+            Object.keys(toRecordMap(data?.citizens))
             .filter((citizen: any) => {
-              let ctz = data?.citizens[citizen];
+              let ctz = getById(data?.citizens, citizen);
+              if (!ctz) return false;
 
-              if (search.split(' ').length > 1) {
-                let searchQueries = search.split(' ');
-                let found = false;
+              const query = (search || '').toLowerCase();
+              if (!query) return true;
 
-                searchQueries.forEach((query: string) => {
-                  if (ctz?.firstname?.toLowerCase().includes(query) || ctz?.lastname?.toLowerCase().includes(query)) found = true;
-                });
-
-                if (found) return citizen;
+              if (query.split(' ').length > 1) {
+                return query.split(' ').some((part: string) => (
+                  String(ctz?.firstname || '').toLowerCase().includes(part) ||
+                  String(ctz?.lastname || '').toLowerCase().includes(part)
+                ));
               }
 
-              if (search === '' || !search) return citizen;
-              else if (ctz?.firstname?.toLowerCase().includes(search)) return citizen;
-              else if (ctz?.lastname?.toLowerCase().includes(search)) return citizen;
-              else if (ctz?.citizenId?.toString().includes(search)) return citizen;
-              else if (ctz?.phoneNumber?.toString().includes(search)) return citizen;
-              
-              return null;
+              return (
+                String(ctz?.firstname || '').toLowerCase().includes(query) ||
+                String(ctz?.lastname || '').toLowerCase().includes(query) ||
+                String(ctz?.citizenId || '').toLowerCase().includes(query) ||
+                String(ctz?.phoneNumber || ctz?.phone_number || '').toLowerCase().includes(query)
+              );
             })
             .sort((a: any, b: any) => {
-              let ctzA = data?.citizens[a];
-              let ctzB = data?.citizens[b];
-              let nameA = `${ctzA?.firstname} ${ctzA?.lastname}`.toLowerCase();
-              let nameB = `${ctzB?.firstname} ${ctzB?.lastname}`.toLowerCase();
+              let ctzA = getById(data?.citizens, a);
+              let ctzB = getById(data?.citizens, b);
+              let nameA = `${ctzA?.firstname || ''} ${ctzA?.lastname || ''}`.toLowerCase();
+              let nameB = `${ctzB?.firstname || ''} ${ctzB?.lastname || ''}`.toLowerCase();
               return nameA.localeCompare(nameB);
             })
-            .map((citizen: any) => (
-              // Get the citizen data of the citizen key
-              citizen = data?.citizens[citizen],
-              {
+            .map((citizenKey: any) => {
+              const citizen = getById(data?.citizens, citizenKey);
+              return {
                 image: citizen?.image || 'https://via.placeholder.com/150',
                 name: citizen?.firstname,
                 surname: citizen?.lastname,
@@ -106,7 +104,6 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
                 job: citizen?.job?.job_label || 'Disoccupato',
                 actions: {
                   type: 'button',
-                  // label: 'Informazioni dettagliate',
                   icon: faCircleInfo,
                   tooltip: {
                     place: 'bottom',
@@ -119,8 +116,8 @@ function CitizenSearch({ theme, setActiveComponent, searchQuery }: CitizenSearch
                   },
                   style: 'bg-green-500 h-10 w-10',
                 },
-              }
-            ))
+              };
+            })
           }
           emptyMessage={`Nessun cittadino trovato` + (search ? ` per la ricerca "${search}"` : '')}
           style={{
