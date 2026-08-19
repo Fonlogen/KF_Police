@@ -303,9 +303,27 @@ export interface RadioState {
   talking: boolean;
 }
 
-export interface Geometry {
+/**
+ * Finestra trasparente della cornice (web/assets/tablet.png), in frazioni
+ * dell'immagine. Il client le calcola da Config.UI.frame: la UI le usa come
+ * percentuali e non conosce le misure in pixel del PNG.
+ */
+export interface FrameInset {
+  left: number;
+  top: number;
   width: number;
   height: number;
+}
+
+export interface Geometry {
+  /** Schermata utile, dentro la cornice. Da qui deriva rootFontSize. */
+  width: number;
+  height: number;
+  /** Ingombro fisico del dispositivo, cornice compresa. */
+  frameWidth: number;
+  frameHeight: number;
+  /** Assente quando Config.UI.frame.enabled e' falso. */
+  frameInset?: FrameInset;
   screenWidth: number;
   screenHeight: number;
   rootFontSize: number;

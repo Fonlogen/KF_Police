@@ -19,35 +19,72 @@ function MdtIsOpen()
 end
 
 --- Geometria del tablet in funzione della risoluzione reale.
---- @return table { width, height, rootFontSize }
+---
+--- Due rettangoli concentrici:
+---  * la CORNICE (`frameWidth`/`frameHeight`) e' l'ingombro fisico del
+---    dispositivo, cioe' quello che deve stare dentro lo schermo;
+---  * la SCHERMATA (`width`/`height`) e' la finestra utile dentro la cornice e
+---    tiene il rapporto di progetto 1280x910. Da lei deriva `rootFontSize`.
+---
+--- Con `Config.UI.frame.enabled = false` i due rettangoli coincidono e il
+--- risultato e' identico a prima della cornice.
+--- @return table { width, height, frameWidth, frameHeight, frameInset, rootFontSize }
 function ComputeTabletGeometry()
     local cfg = Config.UI
+    local frame = cfg.frame
     local sw, sh = GetActiveScreenResolution()
+    local ratio = cfg.baseWidth / cfg.baseHeight
+    local framed = frame ~= nil and frame.enabled
 
-    local height = math.floor(sh * cfg.heightRatio)
-    local width = math.floor(height * (cfg.baseWidth / cfg.baseHeight))
+    -- Di quanto la scocca e' piu' grande della finestra trasparente.
+    local growX = framed and (frame.imageWidth / frame.cutoutWidth) or 1.0
+    local growY = framed and (frame.imageHeight / frame.cutoutHeight) or 1.0
 
+    -- Si parte dall'altezza della CORNICE, perche' e' lei che deve rientrare
+    -- nello schermo, e si torna indietro alla schermata.
+    local width = (sh * cfg.heightRatio / growY) * ratio
+
+    -- minWidth/maxWidth valgono sulla schermata: e' la sua larghezza che
+    -- determina rootFontSize, quindi la leggibilita' del testo.
     if width < cfg.minWidth then
         width = cfg.minWidth
-        height = math.floor(width * (cfg.baseHeight / cfg.baseWidth))
     elseif width > cfg.maxWidth then
         width = cfg.maxWidth
-        height = math.floor(width * (cfg.baseHeight / cfg.baseWidth))
     end
 
-    -- Non superare mai lo schermo disponibile.
-    if width > sw then
-        width = sw
-        height = math.floor(width * (cfg.baseHeight / cfg.baseWidth))
+    local frameWidth = width * growX
+    local frameHeight = (width / ratio) * growY
+
+    -- La cornice non esce mai dallo schermo, e questo vincolo batte minWidth:
+    -- meglio un tablet piccolo che un tablet tagliato.
+    local fit = math.min(1.0, sw / frameWidth, sh / frameHeight)
+    if fit < 1.0 then
+        frameWidth = frameWidth * fit
+        frameHeight = frameHeight * fit
     end
-    if height > sh then
-        height = sh
-        width = math.floor(height * (cfg.baseWidth / cfg.baseHeight))
-    end
+
+    frameWidth = math.floor(frameWidth)
+    frameHeight = math.floor(frameHeight)
+
+    -- La schermata e' ricavata dalla cornice gia' arrotondata, cosi' i valori
+    -- riportati sono esattamente quelli che il CSS disegnera'.
+    width = frameWidth / growX
+    height = frameHeight / growY
 
     return {
         width = width,
         height = height,
+        frameWidth = frameWidth,
+        frameHeight = frameHeight,
+        -- Posizione della finestra trasparente in frazioni della cornice: la NUI
+        -- le applica come percentuali e non deve sapere nulla del PNG.
+        -- Assente quando la cornice e' disattivata.
+        frameInset = framed and {
+            left = frame.cutoutX / frame.imageWidth,
+            top = frame.cutoutY / frame.imageHeight,
+            width = frame.cutoutWidth / frame.imageWidth,
+            height = frame.cutoutHeight / frame.imageHeight,
+        } or nil,
         screenWidth = sw,
         screenHeight = sh,
         -- La NUI applica questo valore come font-size della radice.

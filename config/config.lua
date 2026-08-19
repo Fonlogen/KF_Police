@@ -71,10 +71,57 @@ Config.NotificationsDuration = 3000
 Config.UI = {
     baseWidth   = 1280,  -- larghezza logica di progetto (il mockup)
     baseHeight  = 910,   -- rapporto 1.4066
-    heightRatio = 0.86,  -- frazione dell'altezza schermo occupata dal tablet
-    minWidth    = 1080,  -- non scende sotto
-    maxWidth    = 1920,  -- non sale sopra
+    heightRatio = 0.96,  -- frazione dell'altezza schermo occupata dal tablet
+    minWidth    = 1080,  -- non scende sotto (misura la SCHERMATA, non la cornice)
+    maxWidth    = 1920,  -- non sale sopra (idem)
     scale       = 1.0,   -- zoom utente: 0.9 | 1.0 | 1.1
+}
+
+--[[
+    Cornice fisica del dispositivo: web/assets/tablet.png
+    ----------------------------------------------------------------------------
+    L'immagine ha una finestra trasparente al centro, ed e' quella la schermata
+    utile: la UI ci va dentro, la scocca resta intorno.
+
+    `heightRatio` misura la cornice INTERA, non la schermata. Siccome la scocca
+    e' alta 1073/888 = 1.208 volte il ritaglio, la schermata utile e' sempre piu'
+    piccola della frazione dichiarata: e' la ragione per cui `heightRatio` e'
+    passato da 0.86 a 0.96 quando la cornice e' stata introdotta, altrimenti la
+    UI si sarebbe rimpicciolita del 17% e il testo con lei.
+
+    Le misure sotto sono rilevate dal PNG e vanno cambiate solo se si sostituisce
+    l'immagine. Il rapporto del ritaglio (1280/888 = 1.441) non e' identico a
+    quello di progetto (1280/910 = 1.407): la cornice viene quindi stirata del
+    2.4% in verticale per far combaciare la finestra con la schermata. E'
+    volontario e impercettibile; l'alternativa sarebbe deformare la UI o
+    aggiungere bande nere.
+
+    ATTENZIONE alle misure orizzontali: NON sono il ritaglio nudo.
+    Il bordo della finestra e' antialiasato su esattamente 1 pixel (a x=60 e
+    x=1337 l'alpha e' 54, cioe' trasparente al 79%). Siccome l'immagine viene
+    stirata, l'arrotondamento sub-pixel lasciava quel pixel morbido senza UI
+    dietro e in gioco si vedeva 1 px di gioco per lato. Quindi la finestra
+    dichiarata parte dall'ultimo pixel COMPLETAMENTE opaco (x=59) e arriva
+    all'ultimo opaco dall'altra parte (x=1338 escluso): 2 px in piu' del ritaglio
+    reale, cioe' 1 px di sovrapposizione per lato. La colonna in piu' della UI
+    finisce sotto la scocca nera, dove non si vede.
+
+    In verticale la rampa e' identica (y=93 e y=980 hanno alpha 122) ma in gioco
+    la cucitura non si nota: se dovesse comparire, la correzione e' la stessa,
+    cutoutY = 92 e cutoutHeight = 890.
+
+    `enabled = false` torna al telaio puramente CSS di prima; in quel caso
+    conviene rimettere `heightRatio` a 0.86, altrimenti la schermata cresce del
+    12% rispetto a come era progettata.
+]]
+Config.UI.frame = {
+    enabled      = true,
+    imageWidth   = 1400,  -- dimensione del PNG
+    imageHeight  = 1073,
+    cutoutX      = 59,    -- finestra + 1 px di sovrapposizione per lato
+    cutoutY      = 93,
+    cutoutWidth  = 1280,  -- ritaglio reale 1278, vedi nota sull'antialiasing
+    cutoutHeight = 888,
 }
 
 --- Pagine abilitate, nell'ordine in cui compaiono nella sidebar.
