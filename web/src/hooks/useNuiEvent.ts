@@ -1,49 +1,29 @@
-import { MutableRefObject, useEffect, useRef } from "react";
-import { noop } from "../utils/misc";
-
-interface NuiMessageData<T = unknown> {
-  action: string;
-  data: T;
-}
-
-type NuiHandlerSignature<T> = (data: T) => void;
+import { useEffect, useRef } from 'react';
 
 /**
- * A hook that manage events listeners for receiving data from the client scripts
- * @param action The specific `action` that should be listened for.
- * @param handler The callback function that will handle data relayed by this hook
- *
- * @example
- * useNuiEvent<{visibility: true, wasVisible: 'something'}>('setVisible', (data) => {
- *   // whatever logic you want
- * })
- *
- **/
+ * Ascolto degli eventi inviati da SendNUIMessage.
+ * Il listener e' registrato in useEffect con cleanup e l'handler passa da una
+ * ref, così un handler nuovo a ogni render non ri-registra il listener.
+ */
+export function useNuiEvent<T = unknown>(action: string, handler: (data: T) => void): void {
+  const saved = useRef(handler);
 
-export const useNuiEvent = <T = unknown>(
-  action: string,
-  handler: (data: T) => void,
-) => {
-  const savedHandler: MutableRefObject<NuiHandlerSignature<T>> = useRef(noop);
-
-  // Make sure we handle for a reactive handler
   useEffect(() => {
-    savedHandler.current = handler;
+    saved.current = handler;
   }, [handler]);
 
   useEffect(() => {
-    const eventListener = (event: MessageEvent<NuiMessageData<T>>) => {
-      const { action: eventAction, data } = event.data;
+    const listener = (event: MessageEvent) => {
+      const payload = event.data as { action?: string; data?: T } | undefined;
 
-      if (savedHandler.current) {
-        if (eventAction === action) {
-          savedHandler.current(data);
-        }
+      if (payload && payload.action === action) {
+        saved.current(payload.data as T);
       }
     };
 
-    window.addEventListener("message", eventListener);
-    // Remove Event Listener on component cleanup
-    return () => window.removeEventListener("message", eventListener);
+    window.addEventListener('message', listener);
+    return () => window.removeEventListener('message', listener);
   }, [action]);
-};
+}
+
+export default useNuiEvent;

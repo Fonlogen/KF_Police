@@ -1,0 +1,109 @@
+/* ============================================================================
+   KF_Police - Token del design system (sezione 3.4 del piano)
+   ---------------------------------------------------------------------------
+   Fonte unica di verita': nessun colore, raggio o dimensione va scritto a mano
+   dentro i componenti. tailwind.config.js LEGGE questi token, non li duplica,
+   quindi un valore cambia in un posto solo.
+
+   Direzione approvata: "Case File v4", dark totale. Le superfici sono un
+   nero-bruno caldo, non un grigio-blu.
+   ========================================================================== */
+
+:root {
+  /* ---------- Tipografia ---------- */
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-numeric: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---------- Superfici ---------- */
+  --bg-shell: #100e0b;    /* telaio del dispositivo           */
+  --bg-chrome: #0a0908;   /* status bar, sidebar, dock radio  */
+  --bg-sheet: #1a1611;    /* il "foglio" del fascicolo        */
+  --bg-raised: #221c15;   /* intestazioni di tabella, pannelli */
+  --bg-inset: #120f0c;    /* campi di input                   */
+  --bg-tab: #191510;      /* linguetta inattiva               */
+  --bg-control: #262019;  /* pulsanti icona, chip             */
+  --bg-hover: #1f1a14;
+  --bg-active: #1d1913;   /* voce di navigazione attiva       */
+  --bg-nav-hover: #171310;
+  --bg-collapse: #141110;
+  --bg-avatar: #3d342a;
+
+  /* ---------- Bordi ---------- */
+  --line: #302719;        /* bordo del foglio                 */
+  --line-soft: #241e17;   /* separatore di riga               */
+  --line-perf: #3a3025;   /* tratteggio "perforazione"        */
+  --line-ctrl: #3d3327;   /* bordo dei controlli              */
+  --line-inset: #33291f;  /* bordo dei campi                  */
+
+  /* ---------- Testo ---------- */
+  --fg: #e8e1d4;
+  --fg-strong: #f0e9dc;
+  --fg-muted: #8a8175;
+  --fg-dim: #6b6459;      /* etichette di gruppo              */
+  --fg-nav: #9a9084;      /* voce di navigazione inattiva     */
+  --fg-nav-hover: #d6cfc2;
+  --fg-chrome: #c9c0b0;   /* testo della status bar           */
+  --fg-head: #948a7c;     /* intestazioni di colonna          */
+  --fg-collapse: #7d7568;
+
+  /* ---------- Accenti: semantici, non decorativi ---------- */
+  --accent: #a8322a;      /* identita' LSPD, tab attiva, badge */
+  --critical: #e8695c;    /* ricercato, timbri, distruttivo    */
+  --warning: #c9a227;     /* radio, batteria, avvisi           */
+  --success: #7bb661;     /* in servizio, confermato           */
+  --info: #d98c6a;        /* azioni neutre, chevron            */
+
+  /* ---------- Raggi: solo tre valori, piu' il cerchio ---------- */
+  --r-sm: 0.25rem;        /* timbri, chip, campi, pulsanti icona    */
+  --r-md: 0.5rem;         /* voci sidebar, linguette, crest, foglio */
+  --r-lg: 0.75rem;        /* telaio del dispositivo, modali         */
+  --r-dot: 9999px;        /* solo pallini di stato e badge numerici */
+
+  /* ---------- Altezze invalicabili (sezione 3.3) ---------- */
+  --h-statusbar: 2.25rem;
+  --h-nav: 3rem;          /* requisito esplicito del committente */
+  --h-tab: 2.4rem;
+  --h-tab-active: 2.6rem;
+  --h-sheet-header: 3.5rem;
+  --h-thead: 2.5rem;
+  --h-row: 3.4rem;
+  --h-field: 2.3rem;
+  --h-radiodock: 3rem;
+  --h-target: 2.25rem;    /* bersaglio cliccabile minimo */
+  --h-btn-sm: 2.25rem;
+  --h-btn-md: 2.5rem;
+  --h-btn-lg: 2.75rem;
+
+  --w-sidebar: 13rem;     /* correzione richiesta n. 1 */
+  --w-sidebar-collapsed: 3.5rem;
+  --w-search: 14rem;      /* correzione richiesta n. 2 */
+
+  /* ---------- Scala delle icone (sezione 3.7) ---------- */
+  --ico-xs: 0.7rem;       /* chiusura linguetta            */
+  --ico-sm: 0.8rem;       /* timbri, collapse toggle       */
+  --ico-md: 0.85rem;      /* chevron "apri" della tabella  */
+  --ico-lg: 0.95rem;      /* status bar, linguette, campi  */
+  --ico-xl: 1.25rem;      /* navigazione sidebar           */
+  --ico-2xl: 1.3rem;      /* crest, icona radio            */
+}
+
+/* ---------------------------------------------------------------------------
+   Temi per dipartimento: ridefiniscono SOLO l'accento. Le superfici restano
+   identiche, cosi' un cambio di reparto non diventa un tema diverso.
+   -------------------------------------------------------------------------- */
+
+[data-dept='police'] {
+  --accent: #a8322a;
+}
+
+[data-dept='sheriff'] {
+  --accent: #a67c00;
+}
+
+[data-dept='cib'] {
+  --accent: #6b7f1f;
+}
+
+[data-dept='ambulance'] {
+  --accent: #b03a32;
+}
