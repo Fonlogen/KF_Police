@@ -1,275 +1,147 @@
-import React, { useEffect, useState } from "react";
-import "./App.css";
-import { debugData } from "../utils/debugData";
-import { fetchNui } from "../utils/fetchNui";
+import { useEffect, useState } from 'react';
+import DeviceFrame from '../components/DeviceFrame';
+import StatusBar from '../components/StatusBar';
+import Sidebar from '../components/Sidebar';
+import TabStrip from '../components/TabStrip';
+import RadioDock from '../components/RadioDock';
+import Sheet from '../components/Sheet';
+import EmptyState from '../components/EmptyState';
+import { useNuiEvent } from '../hooks/useNuiEvent';
+import { closeMdt, isBrowser } from '../lib/nui';
+import { useMdt, type Tab } from '../state/MdtProvider';
+import type { PageKey } from '../lib/types';
 
-import DepartmentHeader from "./components/DepartmentHeader";
-import PagesContainer from "./components/PagesContainer";
-import BottomButtons from "./components/BottomButtons";
-import Account from "./components/Account";
-import PageHeader from "./components/PageHeader";
+import CitizensPage from './CitizensPage';
+import CitizenSheet from './CitizenSheet';
+import VehiclesPage from './VehiclesPage';
+import VehicleSheet from './VehicleSheet';
+import ReportsPage from './ReportsPage';
+import ReportSheet from './ReportSheet';
+import PenalCodePage from './PenalCodePage';
+import WantedPage from './WantedPage';
+import JailPage from './JailPage';
+import RadioPage from './RadioPage';
+import DutyPage from './DutyPage';
 
-import tabletImg from '../../assets/tablet.png';
-import backgroundImg from '../../assets/debug_wp.jpg';
+/**
+ * Telaio dell'applicazione.
+ * ---------------------------------------------------------------------------
+ * La mappa `pageKey -> componente` vive QUI e non in pages/registry.ts: quel
+ * file resta di soli metadati perche' e' importato da MdtProvider, e
+ * associarvi i componenti creerebbe un ciclo di import
+ * (pagina -> useMdt -> provider -> registry -> pagina).
+ *
+ * Differenze rispetto alla versione precedente di questo file:
+ *  - nessun `window.addEventListener` nel corpo del render (bug U1: ne
+ *    registrava uno nuovo a ogni render, senza mai rimuoverlo);
+ *  - nessuna misura in pixel calcolata a mano dal config: la geometria arriva
+ *    dal client e la applica DeviceFrame, il resto e' in rem;
+ *  - un solo contesto (MdtProvider) invece di MDTContext con 16 setter.
+ */
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faTimes,
-  faHome,
-} from '@fortawesome/free-solid-svg-icons'
-import { useNuiEvent } from "../hooks/useNuiEvent";
-import DebugMenu from "./components/DebugMenu";
-import CitizenView from "./sections/CitizenView";
-import VehicleView from "./sections/VehicleView";
-import { executeDebugData } from "../utils/debugDataList";
-import { toRecordMap } from "../utils/utils";
+const PAGE_COMPONENTS: Record<PageKey, () => JSX.Element> = {
+  citizens: CitizensPage,
+  vehicles: VehiclesPage,
+  reports: ReportsPage,
+  penalcode: PenalCodePage,
+  wanted: WantedPage,
+  jail: JailPage,
+  radio: RadioPage,
+  duty: DutyPage,
+};
 
+/** Smistamento della linguetta attiva sul componente che la disegna. */
+function ActiveView({ tab }: { tab: Tab }): JSX.Element {
+  if (tab.kind === 'citizen' && tab.refId) {
+    return <CitizenSheet identifier={tab.refId} />;
+  }
 
-// Debug Data
-executeDebugData();
+  if (tab.kind === 'vehicle' && tab.refId) {
+    return <VehicleSheet plate={tab.refId} />;
+  }
 
-// O Contest
-export const MDTContext = React.createContext<any>(null);
+  if (tab.kind === 'report' && tab.refId) {
+    return <ReportSheet tabId={tab.id} reportId={tab.refId === 'new' ? 'new' : Number(tab.refId)} />;
+  }
 
-type Theme = "police" | "sheriff" | "cib";
+  const Page = tab.pageKey ? PAGE_COMPONENTS[tab.pageKey] : undefined;
 
-interface ReturnClientDataCompProps {
-  data: unknown;
+  if (!Page) {
+    return (
+      <Sheet>
+        <EmptyState
+          icon="warning"
+          title="Pagina non disponibile"
+          hint="La scheda non ha un contenuto associato."
+        />
+      </Sheet>
+    );
+  }
+
+  return <Page />;
 }
 
-const ReturnClientDataComp: React.FC<ReturnClientDataCompProps> = ({
-  data,
-}) => (
-  <>
-    <h5>Returned Data:</h5>
-    <pre>
-      <code>{JSON.stringify(data, null)}</code>
-    </pre>
-  </>
-);
+export function App(): JSX.Element | null {
+  const { ready, tabs, activeTabId } = useMdt();
 
-interface ReturnData {
-  x: number;
-  y: number;
-  z: number;
-}
+  // In browser (`npm run dev`) il tablet e' sempre aperto: il gioco non manda
+  // mai `mdt:visible` e senza questo l'interfaccia non si vedrebbe mai.
+  const [visible, setVisible] = useState(isBrowser);
 
-const App = (): JSX.Element => {
-  // STATES
-  const [playerData, setPlayerData] = useState<any>({});
-  const [config, setConfig] = useState<any>({});
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [fullscreen, setFullscreen] = useState<boolean>(false);
-  const [theme, setTheme] = useState("cib" as Theme);
-  const [activeComponent, setActiveComponent] = useState<React.ComponentType | any | string | null>(null);
-  const [data, setData] = useState<any>({
-  });
-  const [clientData, setClientData] = useState<ReturnData | null>(null);
-  const [selectedData, setSelectedData] = useState<any>(null);
-  const [dialogData, setDialogData] = useState<any>(null);
-  const [header, setHeader] = useState<string>('');
+  useNuiEvent<{ visible: boolean }>('mdt:visible', (data) => setVisible(Boolean(data?.visible)));
 
-  // NUI Event Handlers
-  useNuiEvent<any>('setTheme', (data) => {
-    console.log('Setting theme', data);
-    if (data) {
-      setTheme(data);
-    } else {
-      setTheme('police');
-    }
-  });
-  useNuiEvent<any>('setConfig', (data) => {
-    console.log('Setting config', data);
-    if (data) {
-      
-      if (config) {
-        setConfig({ ...config, ...data });
-      } else {
-        setConfig(data);
-      }
-    }
-  });
-  useNuiEvent<any>('setData', (newData) => {
-    if (!newData) return;
-    setData((prev: any) => ({
-      ...(prev || {}),
-      ...newData,
-      citizens: toRecordMap(newData.citizens != null ? newData.citizens : prev?.citizens),
-      vehicles: toRecordMap(newData.vehicles ?? prev?.vehicles),
-      tags: toRecordMap(newData.tags ?? prev?.tags),
-      reports: toRecordMap(newData.reports ?? prev?.reports),
-      penalcode: toRecordMap(newData.penalcode ?? newData.penalCode ?? prev?.penalcode),
-      penalCode: toRecordMap(newData.penalcode ?? newData.penalCode ?? prev?.penalCode),
-      wantedList: toRecordMap(newData.wantedList ?? prev?.wantedList),
-    }));
-  });
-  useNuiEvent<any>('setPlayerData', (data) => {
-    console.log('Setting player data', data);
-    if (data) {
-      if (playerData) {
-        setPlayerData({ ...playerData, ...data });
-      } else {
-        setPlayerData(data);
-      }
-    }
-  });
+  // ESC chiude il tablet. Listener in useEffect con cleanup.
+  useEffect(() => {
+    if (!visible) return undefined;
 
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'F11') {
-      setFullscreen(!fullscreen);
-      e.preventDefault();
-    }
-  });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
 
-  const handleGetClientData = () => {
-    fetchNui<ReturnData>("getClientData")
-      .then((retData) => {
-        console.dir(retData);
-        setClientData(retData);
-      })
-      .catch((e) => {
-        setClientData({ x: 500, y: 300, z: 200 });
-      });
-  };
+      // Una modale aperta assorbe ESC: chiude se stessa, non il tablet.
+      if (document.querySelector('[data-modal="open"]')) return;
+
+      event.preventDefault();
+      closeMdt();
+
+      // In browser non c'e' un client che risponda con `mdt:visible`.
+      if (isBrowser()) setVisible(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const activeTab = tabs.find((tab) => tab.id === activeTabId);
 
   return (
-    <div className={`nui-wrapper theme-${theme} z-30 relative`}>
-      {/* Width and height must be window.width + borderImage.offsetX ecc */}
-      { !fullscreen &&
-        <div className={`tablet-image absolute z-50 pointer-events-none`}
-          style={{
-            height:     config?.window?.height  ? `${config.window.height + config.borderImage.heightOffset}px` : `${150 + 768}px`,
-            width:      config?.window?.width   ? `${config.window.width  + config.borderImage.widthOffset}px`  : `${100 + 1080}px`,
-            maxHeight:  config?.window?.height  ? `${config.window.height + config.borderImage.heightOffset}px` : `${150 + 768}px`,
-            maxWidth:   config?.window?.width   ? `${config.window.width  + config.borderImage.widthOffset}px`  : `${100 + 1080}px`,
-          }}
-        >
-          <img src={tabletImg} alt="Tablet" className="object-fill h-full w-full" />
+    <DeviceFrame>
+      <StatusBar />
+
+      <div className="flex min-h-0 flex-1">
+        <Sidebar />
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TabStrip />
+
+          {activeTab ? (
+            <ActiveView tab={activeTab} />
+          ) : (
+            <Sheet>
+              <EmptyState
+                icon={ready ? 'empty' : 'refresh'}
+                title={ready ? 'Nessuna scheda aperta' : 'Connessione al terminale'}
+                hint={ready ? 'Scegli una voce dal menu a sinistra.' : undefined}
+              />
+            </Sheet>
+          )}
+
+          <RadioDock />
         </div>
-      }
-
-      {
-        config?.Debug &&
-        <img src={backgroundImg} alt="Background" className="background-image absolute z-[-1] pointer-events-none w-full h-full" />
-      }
-
-      { !playerData || !config || !data ? (
-          <div className='flex h-full w-full items-center justify-center'>
-            <p className='text-white'>Loading...</p>
-          </div>
-        ) : null
-      }
-      { data && config && playerData && (
-        <div 
-          className={`mdt-container flex flex-col gap-3 ${fullscreen ? 'window_fullscreen' : ''}`}
-          style={
-            !fullscreen
-            ? {
-                height: config?.window?.height ? `${config.window.height}px` : '768px',
-                width: config?.window?.width ? `${config.window.width}px` : '1080px',
-                maxHeight: config?.window?.height ? `${config.window.height}px` : '768px',
-                maxWidth: config?.window?.width ? `${config.window.width}px` : '1080px',
-              }
-            : {}
-          }
-        >
-          <MDTContext.Provider value={
-            { 
-              data: data, 
-              setData: setData,
-              config: config, 
-              setConfig: setConfig,
-              playerData: playerData, 
-              setPlayerData: setPlayerData,
-              theme: theme, 
-              setTheme: setTheme,
-              activeComponent: activeComponent,
-              setActiveComponent: setActiveComponent,
-              search: searchQuery, 
-              setSearch: setSearchQuery, 
-              selectedData: selectedData,
-              setSelectedData: setSelectedData, 
-              dialogData: dialogData,
-              setDialogData: setDialogData,
-              header,
-              setHeader: setHeader,
-            }
-          }>
-            <DebugMenu />
-
-            {/* <Dialog 
-              title={dialogData?.title} 
-              body={dialogData?.message} 
-              show={dialogData?.show}
-              options={dialogData?.options}
-              background={dialogData?.background}
-              onClose={dialogData?.onClose}
-              className={dialogData?.className}
-              style={dialogData?.style}
-            /> */}
-            
-            {/* <InputDialog 
-              title='Testtttt'
-              body='Test'
-              show={true}
-              options={[
-                {
-                  type: 'input',
-                  inputType: 'text',
-                  placeholder: 'Inserisci il nome del cittadino',
-                },
-                {
-                  type: 'button',
-                  label: 'Cerca',
-                  className: 'btn-primary',
-                  onClick: () => {
-                    console.log('Cerca');
-                  },
-                }
-              ]}
-            /> */}
-
-            <div 
-              className="mdt-header flex flex-row gap-3 justify-between h-[100px]"
-            >
-              <DepartmentHeader deptCity='Los Santos' deptText="Police Department" deptImage="https://static.wikia.nocookie.net/diamond-city/images/c/c0/LSPD.png" className={`theme-${theme}`} />
-              <div className={`header-right theme-${theme} flex flex-col gap-3 items-center h-full flex-1`}>
-                <div className="top-part flex w-full justify-end gap-2 h-[50px]">
-                  <Account playerData={playerData} theme={theme} />
-                  <button className="close-button text-red-500 hover:text-red-600 px-3" onClick={() => fetchNui("close")}>
-                    <FontAwesomeIcon icon={faTimes} className="text-4xl font-bold" />
-                  </button>
-                </div>
-                <PageHeader activeComponent={activeComponent} setSearchQuery={setSearchQuery} header={header} />
-              </div>
-            </div>
-            <div className="mdt-content flex flex-row flex-1 gap-3 overflow-hidden">
-              <div className="side-part w-[350px] gap-3 flex flex-col overflow-hidden">
-                <PagesContainer theme={`${theme}`} setActiveComponent={setActiveComponent} />
-                <BottomButtons />
-              </div>
-
-              <div className={`main-part flex-1 theme-${theme} box-border`} id='content'>
-                { activeComponent && activeComponent === 'citizen_data' && (
-                  <CitizenView citizen={undefined} theme={""} />
-                )}
-                { activeComponent && activeComponent === 'vehicle_data' && (
-                  <VehicleView vehicle={selectedData} theme={theme} />
-                )}
-                {activeComponent && activeComponent !== 'citizen_data' && activeComponent !== 'vehicle_data' && React.createElement(activeComponent.component, { theme, setActiveComponent, searchQuery, ...(activeComponent.props || {}) })}
-                {!activeComponent && (
-                  <div className='flex flex-col gap-3 text-xl'>
-                    <h1>Benvenuto {playerData?.firstName || 'Agente'},</h1>
-                    <p>Clicca su una delle opzioni a sinistra per iniziare.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </MDTContext.Provider>
-        </div>
-      )}
-    </div>
+      </div>
+    </DeviceFrame>
   );
-};
+}
 
 export default App;

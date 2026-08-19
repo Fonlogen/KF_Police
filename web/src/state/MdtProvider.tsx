@@ -55,6 +55,8 @@ interface MdtState {
   status: GameStatus;
   radio: RadioState | null;
   defaultImage: string;
+  /** Righe per pagina decise dal server (`Config.PageSize`). */
+  pageSize: number;
 
   tabs: Tab[];
   activeTabId: string;
@@ -107,6 +109,7 @@ export function MdtProvider({ children }: { children: ReactNode }): JSX.Element 
   const [status, setStatus] = useState<GameStatus>({ location: 'Los Santos', time: '--:--' });
   const [radio, setRadio] = useState<RadioState | null>(null);
   const [defaultImage, setDefaultImage] = useState('assets/guest.png');
+  const [pageSize, setPageSize] = useState(25);
 
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState('');
@@ -236,6 +239,7 @@ export function MdtProvider({ children }: { children: ReactNode }): JSX.Element 
       setPages(data.pages ?? []);
       setCounters(data.counters ?? EMPTY_COUNTERS);
       setDefaultImage(data.ui?.defaultImage ?? 'assets/guest.png');
+      setPageSize(data.ui?.pageSize && data.ui.pageSize > 0 ? data.ui.pageSize : 25);
       setReady(true);
 
       // Prima pagina abilitata come linguetta iniziale.
@@ -319,6 +323,7 @@ export function MdtProvider({ children }: { children: ReactNode }): JSX.Element 
       status,
       radio,
       defaultImage,
+      pageSize,
       tabs,
       activeTabId,
       setActiveTab: setActiveTabId,
@@ -348,6 +353,7 @@ export function MdtProvider({ children }: { children: ReactNode }): JSX.Element 
       status,
       radio,
       defaultImage,
+      pageSize,
       tabs,
       activeTabId,
       openPage,

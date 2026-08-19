@@ -361,6 +361,16 @@ const PENAL: PenalCategory[] = [
   },
 ];
 
+/** Celle di Config.Jail.Cells, senza le coordinate: alla UI non servono. */
+const JAIL_CELLS = [
+  { id: 'A1', label: 'Cella A1', capacity: 2 },
+  { id: 'A2', label: 'Cella A2', capacity: 2 },
+  { id: 'A3', label: 'Cella A3', capacity: 2 },
+  { id: 'B1', label: 'Cella B1', capacity: 2 },
+  { id: 'B2', label: 'Cella B2', capacity: 2 },
+  { id: 'B3', label: 'Cella B3', capacity: 2 },
+];
+
 const RADIO: RadioState = {
   enabled: true,
   current: 'lspd_main',
@@ -396,7 +406,14 @@ function dossier(identifier: string): CitizenDossier {
 
   return {
     ok: true,
-    citizen: { ...citizen, height: 182, jobName: 'unemployed', jobGrade: 0 },
+    citizen: {
+      ...citizen,
+      height: 182,
+      jobName: 'unemployed',
+      jobGrade: 0,
+      wantedBy: citizen.isWanted ? 'Fonlogen Dev' : undefined,
+      wantedAt: citizen.isWanted ? '2026-08-18 21:30:00' : undefined,
+    },
     charges: [
       {
         id: 91,
@@ -631,7 +648,7 @@ export function mockEndpoint(endpoint: string, payload: Record<string, unknown>)
         online: true,
       }));
 
-      return { ok: true, rows, total: rows.length, cells: [] };
+      return { ok: true, rows, total: rows.length, cells: JAIL_CELLS };
     }
 
     case 'duty:roster': {

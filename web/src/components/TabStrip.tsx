@@ -21,14 +21,19 @@ export function TabStrip(): JSX.Element {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={[
-              'flex max-w-[14rem] cursor-pointer items-center gap-[0.45rem] whitespace-nowrap',
+              // `min-w-0` e' necessario: un elemento flex non scende sotto la
+              // larghezza del proprio contenuto se non glielo si concede, e con
+              // molte schede aperte la striscia sbordava spingendo il pulsante
+              // "nuovo rapporto" fuori dal telaio. Cosi' i titoli si troncano e
+              // la striscia resta su una riga sola a qualunque numero di schede.
+              'flex min-w-0 max-w-[14rem] cursor-pointer items-center gap-[0.45rem] whitespace-nowrap',
               'rounded-t-md border border-b-0 px-[0.9rem] text-tab',
               active
                 ? 'h-tabactive border-line-perf bg-sheet font-semibold text-fg-strong shadow-[inset_0_0.18rem_0_var(--accent)]'
                 : 'h-tab border-line bg-tab font-medium text-fg-muted hover:text-fg',
             ].join(' ')}
           >
-            <Icon name={tab.icon} size="lg" />
+            <Icon name={tab.icon} size="lg" className="shrink-0" />
             <span className="min-w-0 truncate">{tab.title}</span>
 
             {tab.closable ? (
@@ -39,7 +44,7 @@ export function TabStrip(): JSX.Element {
                   event.stopPropagation();
                   closeTab(tab.id);
                 }}
-                className="ml-[0.2rem] text-fg-dim hover:text-critical"
+                className="ml-[0.2rem] shrink-0 text-fg-dim hover:text-critical"
               >
                 <Icon name="close" size="xs" />
               </button>
@@ -48,14 +53,14 @@ export function TabStrip(): JSX.Element {
         );
       })}
 
-      <span className="flex-1" />
+      <span className="min-w-[0.5rem] flex-1" />
 
       {can('mdt.report.create') ? (
         <button
           type="button"
           title="Nuovo rapporto"
           onClick={() => openReport('new')}
-          className="flex h-tab items-center gap-[0.45rem] rounded-t-md border border-b-0 border-line bg-tab px-[0.9rem] text-tab text-warning hover:brightness-125"
+          className="flex h-tab shrink-0 items-center gap-[0.45rem] rounded-t-md border border-b-0 border-line bg-tab px-[0.9rem] text-tab text-warning hover:brightness-125"
         >
           <Icon name="add" size="lg" />
         </button>

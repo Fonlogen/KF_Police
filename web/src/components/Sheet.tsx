@@ -148,9 +148,22 @@ export function SheetHeader<T extends string>({
   );
 }
 
-/** Corpo scorrevole per le schede di dettaglio (non tabellari). */
+/**
+ * Corpo scorrevole per le schede di dettaglio (non tabellari).
+ *
+ * `[&>*]:shrink-0` non e' un vezzo: in una colonna flex i figli hanno
+ * `flex-shrink: 1` per difetto, quindi venivano compressi sotto la loro altezza
+ * naturale e `Panel`, che ha `overflow-hidden` per i suoi angoli arrotondati, ne
+ * tagliava via il contenuto. Il risultato era un pannello con la sola
+ * intestazione visibile. In una colonna che scorre nessun figlio va compresso:
+ * e' il corpo che scorre.
+ */
 export function SheetBody({ children }: { children: ReactNode }): JSX.Element {
-  return <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">{children}</div>;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 [&>*]:shrink-0">
+      {children}
+    </div>
+  );
 }
 
 /** Pannello: intestazione bg-raised + contenuto. Usato nelle schede. */
@@ -166,7 +179,7 @@ export function Panel({
   children: ReactNode;
 }): JSX.Element {
   return (
-    <div className="flex flex-col overflow-hidden rounded-md border border-line">
+    <div className="flex shrink-0 flex-col overflow-hidden rounded-md border border-line">
       <div className="flex h-thead shrink-0 items-center gap-2 border-b border-line-perf bg-raised px-3">
         {icon ? (
           <span className="text-fg-head">

@@ -93,6 +93,39 @@ export default {
         section: ['1.15rem', { lineHeight: '1.25' }],
       },
     },
+
+    /*
+      Il prefisso `text-` appartiene alla scala tipografica, non alle superfici.
+      ---------------------------------------------------------------------------
+      Per difetto Tailwind ricava `textColor` da tutto `colors`, e due nomi
+      esistono in ENTRAMBE le scale: `tab` e `chrome`. Il risultato era che
+      `text-tab` e `text-chrome` generavano una regola di COLORE che vinceva su
+      quella di font-size e sul colore dichiarato accanto:
+
+        - la linguetta attiva scriveva "Anagrafica" in #191510, cioe' il colore
+          del proprio fondo: testo invisibile;
+        - la status bar perdeva la dimensione 0.78rem del mockup.
+
+      Qui `textColor` e' dichiarato per esteso (fuori da `extend`, quindi
+      SOSTITUISCE il valore ricavato) e contiene solo i nomi che sono davvero
+      colori di testo. Le superfici restano disponibili come `bg-*`, che non
+      collide con niente. Aggiungendo un token: se il nome esiste anche in
+      `fontSize`, non va messo qui.
+    */
+    textColor: ({ theme }) => ({
+      inherit: 'inherit',
+      current: 'currentColor',
+      transparent: theme('colors.transparent'),
+      white: theme('colors.white'),
+      fg: theme('colors.fg'),
+      accent: theme('colors.accent'),
+      critical: theme('colors.critical'),
+      warning: theme('colors.warning'),
+      success: theme('colors.success'),
+      info: theme('colors.info'),
+      /* Usato dal badge giallo della sidebar: testo scuro su fondo chiaro. */
+      shell: theme('colors.shell'),
+    }),
   },
   plugins: [],
 };

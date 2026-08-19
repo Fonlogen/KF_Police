@@ -50,6 +50,9 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
 
   return (
     <div
+      /* App.tsx cerca questo attributo: con una modale aperta ESC chiude la
+         modale, non il tablet. */
+      data-modal="open"
       className="absolute inset-0 z-40 flex items-center justify-center bg-black/55"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();

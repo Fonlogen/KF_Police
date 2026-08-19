@@ -50,8 +50,12 @@ export function Chip({
       title={title ?? label}
       style={custom}
       className={[
-        'inline-flex h-target min-w-0 shrink-0 items-center gap-2 rounded-sm border px-2.5',
+        'inline-flex min-w-0 shrink-0 items-center gap-2 rounded-sm border px-2.5',
         'text-status font-medium',
+        // 2.25rem e' il minimo per un BERSAGLIO cliccabile (sezione 3.3): un chip
+        // statico non e' un bersaglio, e imporgli quell'altezza gonfiava le righe
+        // di tabella e i pannelli. Altezza naturale, quindi, quando non si clicca.
+        interactive ? 'h-target' : 'py-1',
         custom ? '' : TONE[selected ? 'accent' : tone],
         interactive ? 'transition-colors duration-100 hover:brightness-125' : '',
       ].join(' ')}
